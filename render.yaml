@@ -1,0 +1,49 @@
+services:
+  - type: web
+    name: clinica-vidasalud
+    runtime: docker
+    plan: free
+    autoDeploy: true
+    envVars:
+      - key: APP_NAME
+        value: "Clínica Vida Salud"
+      - key: APP_ENV
+        value: production
+      - key: APP_DEBUG
+        value: "false"
+      - key: APP_TIMEZONE
+        value: America/La_Paz
+      - key: AUTO_MIGRATE
+        value: "true"
+      - key: DB_CONNECTION
+        value: pgsql
+      - key: DB_SSLMODE
+        value: require
+      - key: DATABASE_URL
+        sync: false
+      - key: DB_HOST
+        sync: false
+      - key: DB_PORT
+        value: "5432"
+      - key: DB_DATABASE
+        sync: false
+      - key: DB_USERNAME
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
+      - key: MAIL_ENABLED
+        value: "false"
+      - key: MAIL_HOST
+        value: smtp.gmail.com
+      - key: MAIL_PORT
+        value: "587"
+      - key: MAIL_ENCRYPTION
+        value: tls
+      - key: MAIL_USERNAME
+        sync: false
+      - key: MAIL_PASSWORD
+        sync: false
+      - key: MAIL_FROM_ADDRESS
+        value: erlan.garcia75@gmail.com
+      - key: MAIL_FROM_NAME
+        value: "Clínica Vida Salud"

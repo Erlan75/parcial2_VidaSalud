@@ -1,0 +1,497 @@
+/* ============================================================================
+   CLÍNICA VIDA SALUD - DISEÑO UI/UX CLÍNICO 100% RESPONSIVE (MOBILE & DESKTOP)
+   Paleta Oficial: #002D62 | #2B579A | #D4E6F7 | #F4F7FA | #FFFFFF
+   ============================================================================ */
+
+:root {
+    --vs-navy: #002D62;
+    --vs-navy-dark: #001F45;
+    --vs-blue: #2B579A;
+    --vs-sky: #D4E6F7;
+    --vs-sky-soft: #EBF4FC;
+    --vs-bg: #F4F7FA;
+    --vs-white: #FFFFFF;
+    --vs-text: #1E293B;
+    --vs-muted: #64748B;
+    --vs-border: #DCE5F0;
+    --vs-sidebar-w: 272px;
+
+    /* Distintivos oficiales de Estado */
+    --badge-programada: #0d6efd;
+    --badge-confirmada: #ffc107;
+    --badge-atendida: #198754;
+    --badge-cancelada: #dc3545;
+    --badge-inasistencia: #6c757d;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    background-color: var(--vs-bg);
+    color: var(--vs-text);
+    font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+    margin: 0;
+    min-height: 100vh;
+    overflow-x: hidden;
+}
+
+/* ============================================================================
+   LAYOUT PRINCIPAL CON SIDEBAR RESPONSIVE + OFFCANVAS TÁCTIL
+   ============================================================================ */
+.vs-wrapper {
+    display: flex;
+    min-height: 100vh;
+    width: 100%;
+}
+
+.vs-sidebar {
+    width: var(--vs-sidebar-w);
+    background: linear-gradient(180deg, var(--vs-navy) 0%, var(--vs-navy-dark) 100%);
+    color: var(--vs-white);
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 1045;
+    box-shadow: 4px 0 24px rgba(0, 45, 98, 0.14);
+    transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.vs-sidebar-brand {
+    padding: 1.15rem 1.25rem;
+    border-bottom: 1px solid rgba(212, 230, 247, 0.15);
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.vs-brand-cross {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    background: var(--vs-white);
+    color: var(--vs-navy);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.35rem;
+    font-weight: 800;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.18);
+    flex-shrink: 0;
+}
+
+.vs-sidebar-nav {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0.85rem 0.75rem 1.25rem;
+}
+
+.vs-sidebar-nav::-webkit-scrollbar {
+    width: 5px;
+}
+.vs-sidebar-nav::-webkit-scrollbar-thumb {
+    background: rgba(212, 230, 247, 0.25);
+    border-radius: 4px;
+}
+
+.vs-nav-pkg {
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--vs-sky);
+    opacity: 0.78;
+    font-weight: 700;
+    padding: 0.75rem 0.75rem 0.35rem;
+    margin-top: 0.25rem;
+}
+
+.vs-nav-link {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    padding: 0.62rem 0.85rem;
+    border-radius: 9px;
+    color: rgba(255, 255, 255, 0.86);
+    text-decoration: none;
+    font-size: 0.89rem;
+    font-weight: 500;
+    margin-bottom: 2px;
+    transition: all 0.18s ease;
+}
+
+.vs-nav-link i {
+    font-size: 1.05rem;
+    width: 20px;
+    text-align: center;
+    opacity: 0.9;
+}
+
+.vs-nav-link:hover {
+    background: rgba(212, 230, 247, 0.14);
+    color: var(--vs-white);
+}
+
+.vs-nav-link.active {
+    background: var(--vs-blue);
+    color: var(--vs-white);
+    font-weight: 600;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.22);
+    border-left: 3px solid var(--vs-sky);
+}
+
+.vs-sidebar-footer {
+    padding: 0.9rem 1rem;
+    background: rgba(0, 0, 0, 0.2);
+    border-top: 1px solid rgba(212, 230, 247, 0.14);
+}
+
+.vs-main {
+    flex: 1;
+    margin-left: var(--vs-sidebar-w);
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    transition: margin-left 0.28s ease;
+}
+
+.vs-topbar {
+    background: var(--vs-white);
+    border-bottom: 1px solid var(--vs-border);
+    padding: 0.75rem 1.5rem;
+    position: sticky;
+    top: 0;
+    z-index: 1025;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    box-shadow: 0 2px 10px rgba(0, 45, 98, 0.04);
+}
+
+.vs-content {
+    padding: 1.4rem 1.5rem 2.5rem;
+    flex: 1;
+}
+
+.vs-backdrop {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.52);
+    backdrop-filter: blur(2px);
+    z-index: 1040;
+}
+
+/* Comportamiento Mobile & Tablet (< 992px) */
+@media (max-width: 991.98px) {
+    .vs-sidebar {
+        transform: translateX(-100%);
+    }
+    .vs-sidebar.show {
+        transform: translateX(0);
+    }
+    .vs-backdrop.show {
+        display: block;
+    }
+    .vs-main {
+        margin-left: 0;
+    }
+    .vs-topbar {
+        padding: 0.65rem 1rem;
+    }
+    .vs-content {
+        padding: 1rem 0.9rem 2rem;
+    }
+}
+
+/* ============================================================================
+   TARJETAS CLÍNICAS, BOTONES Y KPIs
+   ============================================================================ */
+.vs-card {
+    background: var(--vs-white);
+    border: 1px solid var(--vs-border);
+    border-radius: 14px;
+    box-shadow: 0 3px 14px rgba(0, 45, 98, 0.045);
+}
+
+.vs-card-header {
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid var(--vs-border);
+    background: linear-gradient(90deg, var(--vs-white) 0%, #FAFDFE 100%);
+    border-top-left-radius: 14px;
+    border-top-right-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
+.vs-kpi-card {
+    background: var(--vs-white);
+    border: 1px solid var(--vs-border);
+    border-left: 4px solid var(--vs-navy);
+    border-radius: 13px;
+    padding: 1.1rem 1.2rem;
+    box-shadow: 0 3px 12px rgba(0, 45, 98, 0.04);
+    height: 100%;
+    transition: transform 0.16s ease;
+}
+
+.vs-kpi-card:hover {
+    transform: translateY(-2px);
+}
+
+.vs-kpi-icon {
+    width: 46px;
+    height: 46px;
+    border-radius: 12px;
+    background: var(--vs-sky-soft);
+    color: var(--vs-navy);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.35rem;
+}
+
+.btn-vs-primary {
+    background-color: var(--vs-navy);
+    border-color: var(--vs-navy);
+    color: #fff;
+    font-weight: 600;
+}
+.btn-vs-primary:hover, .btn-vs-primary:focus {
+    background-color: var(--vs-blue);
+    border-color: var(--vs-blue);
+    color: #fff;
+}
+
+.btn-vs-secondary {
+    background-color: var(--vs-sky);
+    border-color: #BBD8F2;
+    color: var(--vs-navy);
+    font-weight: 600;
+}
+.btn-vs-secondary:hover {
+    background-color: #BBD8F2;
+    color: var(--vs-navy);
+}
+
+/* ============================================================================
+   GRILLA INTERACTIVA DE BLOQUES DE 30 MINUTOS (CU08 / CU09)
+   ============================================================================ */
+.slot-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(138px, 1fr));
+    gap: 0.65rem;
+}
+
+.slot-btn {
+    border-radius: 10px;
+    padding: 0.7rem 0.6rem;
+    text-align: center;
+    font-weight: 600;
+    font-size: 0.88rem;
+    transition: all 0.16s ease;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 64px;
+    user-select: none;
+}
+
+.slot-btn.available {
+    background-color: #ECFDF5;
+    border: 1.5px solid #198754;
+    color: #0F5132;
+}
+.slot-btn.available:hover {
+    background-color: #198754;
+    color: #FFFFFF;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 10px rgba(25, 135, 84, 0.25);
+}
+
+.slot-btn.available.selected {
+    background-color: var(--vs-navy);
+    border-color: var(--vs-navy);
+    color: #FFFFFF;
+    box-shadow: 0 0 0 3px rgba(43, 87, 154, 0.32);
+}
+
+.slot-btn.unavailable {
+    background-color: #F1F5F9;
+    border: 1px dashed #CBD5E1;
+    color: #94A3B8;
+    cursor: not-allowed;
+    opacity: 0.85;
+}
+
+/* ============================================================================
+   TABLAS RESPONSIVAS + VISTA ADAPTATIVA DE TARJETAS EN MÓVIL
+   ============================================================================ */
+.table-vs thead th {
+    background-color: #F1F6FB;
+    color: var(--vs-navy);
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    border-bottom: 2px solid var(--vs-sky);
+    padding: 0.8rem 0.85rem;
+    white-space: nowrap;
+}
+
+.table-vs tbody td {
+    padding: 0.8rem 0.85rem;
+    vertical-align: middle;
+    font-size: 0.89rem;
+    border-color: #EDF2F7;
+}
+
+@media (max-width: 767.98px) {
+    .table-mobile-cards thead {
+        display: none;
+    }
+    .table-mobile-cards,
+    .table-mobile-cards tbody,
+    .table-mobile-cards tr,
+    .table-mobile-cards td {
+        display: block;
+        width: 100%;
+    }
+    .table-mobile-cards tr {
+        background: var(--vs-white);
+        border: 1px solid var(--vs-border);
+        border-radius: 12px;
+        margin-bottom: 0.85rem;
+        padding: 0.4rem 0.75rem;
+        box-shadow: 0 2px 8px rgba(0, 45, 98, 0.05);
+    }
+    .table-mobile-cards td {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.5rem 0.25rem;
+        border-bottom: 1px dashed #E2E8F0;
+        text-align: right;
+    }
+    .table-mobile-cards td:last-child {
+        border-bottom: none;
+    }
+    .table-mobile-cards td::before {
+        content: attr(data-label);
+        font-weight: 700;
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        color: var(--vs-blue);
+        text-align: left;
+        flex-shrink: 0;
+    }
+}
+
+/* ============================================================================
+   LÍNEA DE TIEMPO CLÍNICA (CU13 - HISTORIAL DE PACIENTE)
+   ============================================================================ */
+.clinical-timeline {
+    position: relative;
+    padding-left: 2rem;
+}
+.clinical-timeline::before {
+    content: '';
+    position: absolute;
+    left: 11px;
+    top: 6px;
+    bottom: 6px;
+    width: 2px;
+    background: var(--vs-sky);
+}
+.timeline-item {
+    position: relative;
+    margin-bottom: 1.25rem;
+}
+.timeline-dot {
+    position: absolute;
+    left: -2rem;
+    top: 0.35rem;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: var(--vs-navy);
+    border: 4px solid var(--vs-sky);
+}
+
+/* ============================================================================
+   LOGIN & PANTALLAS DE AUTENTICACIÓN SPLIT-SCREEN
+   ============================================================================ */
+.auth-split-wrapper {
+    min-height: 100vh;
+    display: flex;
+    background: var(--vs-bg);
+}
+
+.auth-hero-panel {
+    background: linear-gradient(145deg, var(--vs-navy) 0%, var(--vs-blue) 100%);
+    color: var(--vs-white);
+    padding: 3rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    width: 46%;
+}
+
+.auth-form-panel {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem 1.25rem;
+}
+
+@media (max-width: 991.98px) {
+    .auth-hero-panel {
+        display: none;
+    }
+}
+
+/* Medidor de Complejidad de Contraseña (CU03) */
+.pwd-rule-pill {
+    font-size: 0.76rem;
+    padding: 0.2rem 0.55rem;
+    border-radius: 999px;
+    background: #F1F5F9;
+    color: #64748B;
+    border: 1px solid #E2E8F0;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    transition: all 0.15s ease;
+}
+.pwd-rule-pill.valid {
+    background: #DCFCE7;
+    color: #166534;
+    border-color: #86EFAC;
+    font-weight: 600;
+}
+
+/* Visor JSON de Auditoría (CU17) */
+.json-viewer-box {
+    background: #0F172A;
+    color: #E2E8F0;
+    border-radius: 10px;
+    padding: 0.9rem;
+    font-family: 'Cascadia Code', Consolas, monospace;
+    font-size: 0.8rem;
+    max-height: 340px;
+    overflow: auto;
+    white-space: pre-wrap;
+    word-break: break-word;
+}

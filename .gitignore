@@ -1,0 +1,32 @@
+# Variables de entorno locales y secretos (NUNCA subir a GitHub)
+.env
+.env.local
+.env.*.local
+
+# Sesiones activas y correos generados en local
+/storage/sessions/*
+!/storage/sessions/.gitkeep
+/storage/mail_outbox/*
+!/storage/mail_outbox/.gitkeep
+
+# Dependencias o carpetas temporales
+/vendor/
+/node_modules/
+
+# Archivos temporales de sistema operativo e IDEs
+.DS_Store
+Thumbs.db
+Desktop.ini
+*.log
+*.tmp
+*.swp
+.vscode/
+.idea/
+
+# Asegurar explícitamente la inclusión de los scripts SQL y el migrador
+!/database/Script.sql
+!/database/Triggers.sql
+!/database/PA.sql
+!/database/poblacion.sql
+!/database/extensions.sql
+!/database/migrate.php

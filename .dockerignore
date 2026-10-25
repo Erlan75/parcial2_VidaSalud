@@ -1,0 +1,9 @@
+.git
+.gitignore
+.env
+.env.local
+.vscode
+.idea
+storage/sessions/*
+storage/mail_outbox/*
+README.md
