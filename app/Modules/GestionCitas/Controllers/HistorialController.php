@@ -51,7 +51,7 @@ final class HistorialController extends Controller
         }
 
         $this->render('GestionCitas/historial', [
-            'pageTitle'      => Auth::hasRole('Paciente') ? 'Mi Historial Clínico de Citas (CU13)' : 'Historial Clínico de Citas por Paciente (CU13)',
+            'pageTitle'      => Auth::hasRole('Paciente') ? 'Mi Historial Clínico de Citas' : 'Historial por Paciente',
             'activeMenu'     => 'historial',
             'paciente'       => $paciente,
             'historial'      => $historial,

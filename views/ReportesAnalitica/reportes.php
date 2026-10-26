@@ -62,14 +62,14 @@ $exportParams = array_merge(['tipo' => $tipoReporte], array_filter($filters, sta
 $estadosCita = ['Programada', 'Confirmada', 'Atendida', 'Cancelada', 'Inasistencia'];
 ?>
 
-<!-- CABECERA GERENCIAL Y ACCIONES DE EXPORTACIÓN (CU14 / CU15) -->
+<!-- CABECERA GERENCIAL Y ACCIONES DE EXPORTACIÓN -->
 <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
     <div>
         <span class="badge rounded-pill px-3 py-1 mb-1" style="background: var(--vs-sky); color: var(--vs-navy);">
-            Paquete 5 · ReportesAnalitica · CU14 &amp; CU15
+            Gestión Clínica · Estadísticas e Informes
         </span>
         <h1 class="h4 fw-bold mb-0" style="color: var(--vs-navy);">
-            Centro Ejecutivo de Reportes, Analítica y Exportación PDF / QR
+            Reportes y Estadísticas de Atención Médica
         </h1>
     </div>
     <div class="d-flex flex-wrap gap-2">
@@ -145,12 +145,12 @@ $estadosCita = ['Programada', 'Confirmada', 'Atendida', 'Cancelada', 'Inasistenc
     <?php endforeach; ?>
 </div>
 
-<!-- BARRA DE FILTROS PARAMÉTRICOS + GENERADOR RÁPIDO DE COMPROBANTE PDF CON QR (CU15) -->
+<!-- BARRA DE FILTROS + GENERADOR RÁPIDO DE COMPROBANTE PDF CON QR -->
 <div class="row g-4 mb-4">
     <div class="col-12 col-xl-8">
         <div class="vs-card p-3 p-md-4 h-100">
             <h2 class="h6 fw-bold mb-3" style="color: var(--vs-navy);">
-                <i class="bi bi-funnel-fill me-1 text-primary"></i> Parámetros de Filtrado Dinámico (Consultas PDO Seguras)
+                <i class="bi bi-funnel-fill me-1 text-primary"></i> Filtros de Búsqueda
             </h2>
             <form method="GET" action="<?= e(BASE_URL . '/index.php') ?>" class="row g-3 align-items-end">
                 <input type="hidden" name="r" value="reportes">
@@ -243,12 +243,12 @@ $estadosCita = ['Programada', 'Confirmada', 'Atendida', 'Cancelada', 'Inasistenc
         </div>
     </div>
 
-    <!-- EMISOR RÁPIDO DE COMPROBANTE PDF CON CÓDIGO QR AUTOGENERADO (CU15) -->
+    <!-- EMISOR RÁPIDO DE COMPROBANTE PDF CON CÓDIGO QR -->
     <div class="col-12 col-xl-4">
         <div class="vs-card p-3 p-md-4 h-100" style="background: linear-gradient(145deg, #ffffff 0%, #eef5fc 100%);">
             <div class="d-flex align-items-center gap-2 mb-2">
                 <i class="bi bi-qr-code-scan fs-4 text-primary"></i>
-                <h2 class="h6 fw-bold mb-0" style="color: var(--vs-navy);">Ticket Oficial PDF + Código QR (CU15)</h2>
+                <h2 class="h6 fw-bold mb-0" style="color: var(--vs-navy);">Comprobante de Cita PDF + Código QR</h2>
             </div>
             <p class="small text-muted mb-3">
                 Genere al instante el comprobante clínico membretado con <strong>Código QR vectorial ISO 18004</strong> verificable ingresando el código de cita (ej. <code>CM-00051</code>).

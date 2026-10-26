@@ -30,7 +30,7 @@ final class PacienteController extends Controller
         ];
 
         $this->render('PacientesClinica/pacientes', [
-            'pageTitle'        => 'Padrón de Pacientes y Fichas Médicas (CU07)',
+            'pageTitle'        => 'Pacientes y Ficha Médica',
             'activeMenu'       => 'pacientes',
             'pacientes'        => $this->model->listAll($filters),
             'filters'          => $filters,
@@ -102,11 +102,11 @@ final class PacienteController extends Controller
             $res = $this->model->registrarPacienteCompleto($_POST, $portalCreds, (int) Auth::id(), client_ip());
             Auth::setFlash(
                 'success',
-                "Paciente registrado exitosamente con código correlativo {$res['codigo_paciente']} (Ficha Médica + Contacto creados vía sp_registrar_paciente_completo).",
-                'Alta Integral Exitosa'
+                "Paciente registrado exitosamente con código {$res['codigo_paciente']}.",
+                'Alta de Paciente Exitosa'
             );
         } catch (\Throwable $e) {
-            Auth::setFlash('error', DatabaseExceptionParser::parse($e), 'Rechazo del Motor PostgreSQL');
+            Auth::setFlash('error', DatabaseExceptionParser::parse($e), 'No se pudo registrar al paciente');
         }
 
         $this->redirect('pacientes');
@@ -138,7 +138,7 @@ final class PacienteController extends Controller
                 $observaciones,
                 client_ip()
             );
-            Auth::setFlash('success', 'Ficha médica preventiva actualizada exitosamente mediante sp_actualizar_ficha_medica.', 'Ficha Clínica Actualizada');
+            Auth::setFlash('success', 'Ficha médica preventiva actualizada exitosamente.', 'Ficha Clínica Actualizada');
         } catch (\Throwable $e) {
             Auth::setFlash('error', DatabaseExceptionParser::parse($e), 'Error al actualizar ficha');
         }

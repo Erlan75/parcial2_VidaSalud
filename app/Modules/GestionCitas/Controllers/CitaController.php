@@ -57,7 +57,7 @@ final class CitaController extends Controller
     }
 
     /**
-     * CU08: Interfaz interactiva paso a paso para programar cita médica
+     * Interfaz interactiva paso a paso para programar cita médica
      */
     public function programarForm(): void
     {
@@ -65,14 +65,15 @@ final class CitaController extends Controller
         $pacModel = new PacienteModel();
 
         $preselectedPaciente = null;
-        if (Auth::hasRole('Paciente') && Auth::pacienteId()) {
-            $preselectedPaciente = $pacModel->findById((int) Auth::pacienteId());
+        if (Auth::hasRole('Paciente')) {
+            $idPacPropio = (int) Auth::pacienteId();
+            $preselectedPaciente = $idPacPropio > 0 ? $pacModel->findById($idPacPropio) : null;
         } elseif (!empty($_GET['id_paciente'])) {
             $preselectedPaciente = $pacModel->findById((int) $_GET['id_paciente']);
         }
 
         $this->render('GestionCitas/programar', [
-            'pageTitle'           => 'Programar Cita Médica (CU08)',
+            'pageTitle'           => 'Programar Cita Médica',
             'activeMenu'          => 'citas_programar',
             'especialidades'      => $espModel->listAll(true),
             'preselectedPaciente' => $preselectedPaciente,
@@ -126,15 +127,27 @@ final class CitaController extends Controller
     }
 
     /**
-     * CU08: Confirmación atómica con sp_programar_cita
+     * Confirmación atómica con sp_programar_cita y regla anti-spam para pacientes
      */
     public function guardar(): void
     {
         $this->validatePostWithCsrf();
 
-        $idPaciente = Auth::hasRole('Paciente')
-            ? (int) Auth::pacienteId()
-            : (int) ($_POST['id_paciente'] ?? 0);
+        $esPaciente = Auth::hasRole('Paciente');
+        if ($esPaciente) {
+            $idPaciente = (int) Auth::pacienteId();
+            $postedPaciente = (int) ($_POST['id_paciente'] ?? $idPaciente);
+            if ($idPaciente <= 0 || ($postedPaciente > 0 && $postedPaciente !== $idPaciente)) {
+                if ($this->isAjax()) {
+                    $this->json(['ok' => false, 'message' => 'Solo puede programar citas médicas para su propia cuenta de paciente.'], 403);
+                }
+                Auth::setFlash('error', 'Solo puede programar citas médicas para su propia cuenta de paciente.', 'Acceso restringido');
+                $this->redirect('citas/programar');
+            }
+        } else {
+            $idPaciente = (int) ($_POST['id_paciente'] ?? 0);
+        }
+
         $idEspecialidad = (int) ($_POST['id_especialidad'] ?? 0);
         $idMedico = (int) ($_POST['id_medico'] ?? 0);
         $fechaCita = trim((string) ($_POST['fecha_cita'] ?? ''));
@@ -162,7 +175,8 @@ final class CitaController extends Controller
                 $fechaCita,
                 $horaInicio,
                 $motivo,
-                client_ip()
+                client_ip(),
+                true
             );
 
             $ticketUrl = url('exportar/comprobante', ['id_cita' => $res['id_cita']]);
@@ -179,7 +193,7 @@ final class CitaController extends Controller
             Auth::setFlash(
                 'success',
                 "Cita médica registrada con código {$res['codigo_cita']} para el " . date('d/m/Y', strtotime($fechaCita)) . ' a las ' . substr($horaInicio, 0, 5) . '.',
-                'Cita Programada (CU08)'
+                'Cita Programada'
             );
             $this->redirect('citas', ['q' => $res['codigo_cita']]);
         } catch (\Throwable $e) {
@@ -187,13 +201,13 @@ final class CitaController extends Controller
             if ($this->isAjax()) {
                 $this->json(['ok' => false, 'message' => $cleanError], 409);
             }
-            Auth::setFlash('error', $cleanError, 'Rechazo del Motor PostgreSQL');
+            Auth::setFlash('error', $cleanError, 'No se pudo programar la cita');
             $this->redirect('citas/programar');
         }
     }
 
     /**
-     * CU09: Reprogramar cita médica activa vía sp_reprogramar_cita
+     * Reprogramar cita médica activa vía sp_reprogramar_cita
      */
     public function reprogramar(): void
     {
@@ -220,7 +234,7 @@ final class CitaController extends Controller
 
         try {
             $this->model->reprogramarCita($idCita, (int) Auth::id(), $nuevaFecha, $nuevaHora, client_ip());
-            Auth::setFlash('success', 'Cita reprogramada exitosamente liberando el horario anterior (sp_reprogramar_cita).', 'Cita Reprogramada (CU09)');
+            Auth::setFlash('success', 'Cita reprogramada exitosamente liberando el horario anterior.', 'Cita Reprogramada');
         } catch (\Throwable $e) {
             Auth::setFlash('error', DatabaseExceptionParser::parse($e), 'No se pudo reprogramar');
         }
@@ -229,7 +243,7 @@ final class CitaController extends Controller
     }
 
     /**
-     * CU10: Cancelar cita médica con motivo obligatorio vía sp_cancelar_cita
+     * Cancelar cita médica con motivo obligatorio vía sp_cancelar_cita
      */
     public function cancelar(): void
     {
@@ -240,7 +254,7 @@ final class CitaController extends Controller
         $returnTo = trim((string) ($_POST['return_to'] ?? 'citas'));
 
         if ($idCita <= 0 || mb_strlen($motivo, 'UTF-8') < 5) {
-            Auth::setFlash('warning', 'Debe ingresar un motivo de cancelación descriptivo de al menos 5 caracteres.', 'Motivo obligatorio (CU10)');
+            Auth::setFlash('warning', 'Debe ingresar un motivo de cancelación descriptivo de al menos 5 caracteres.', 'Motivo obligatorio');
             $this->redirect($returnTo);
         }
 
@@ -254,7 +268,7 @@ final class CitaController extends Controller
 
         try {
             $this->model->cancelarCita($idCita, (int) Auth::id(), $motivo, client_ip());
-            Auth::setFlash('success', 'Cita cancelada conservando su trazabilidad histórica y liberando el cupo (sp_cancelar_cita).', 'Cita Cancelada (CU10)');
+            Auth::setFlash('success', 'Cita cancelada conservando su registro histórico y liberando el cupo.', 'Cita Cancelada');
         } catch (\Throwable $e) {
             Auth::setFlash('error', DatabaseExceptionParser::parse($e), 'Cancelación rechazada');
         }
@@ -263,7 +277,7 @@ final class CitaController extends Controller
     }
 
     /**
-     * CU11 (Recepcionista / Administrador): Controlar asistencia (Confirmada / Inasistencia)
+     * Controlar asistencia (Confirmada / Inasistencia)
      */
     public function asistencia(): void
     {
@@ -275,7 +289,7 @@ final class CitaController extends Controller
 
         try {
             $this->model->controlarAsistencia($idCita, (int) Auth::id(), $nuevoEstado, client_ip());
-            Auth::setFlash('success', "Asistencia registrada como «{$nuevoEstado}» mediante sp_controlar_asistencia_cita.", 'Control de Asistencia (CU11)');
+            Auth::setFlash('success', "Asistencia registrada como «{$nuevoEstado}».", 'Control de Asistencia');
         } catch (\Throwable $e) {
             Auth::setFlash('error', DatabaseExceptionParser::parse($e), 'Error en control de asistencia');
         }
@@ -284,7 +298,7 @@ final class CitaController extends Controller
     }
 
     /**
-     * CU11 (Médico): Registrar diagnóstico/evolución y cerrar consulta como Atendida
+     * Registrar diagnóstico/evolución y cerrar consulta como Atendida
      */
     public function atender(): void
     {
@@ -305,7 +319,7 @@ final class CitaController extends Controller
             $this->redirect($returnTo);
         }
 
-        // Si el usuario tiene rol Médico, se envía su propio id_medico para que el SP valide pertenencia estricta
+        // Si el usuario tiene rol Médico, se envía su propio id_medico para validar pertenencia estricta
         $idMedicoEjecutor = Auth::hasRole('Médico')
             ? (int) Auth::medicoId()
             : (int) $cita['id_medico'];
@@ -318,9 +332,9 @@ final class CitaController extends Controller
                 $notasMedicas,
                 client_ip()
             );
-            Auth::setFlash('success', "Consulta médica {$cita['codigo_cita']} sellada como Atendida con notas clínicas registradas.", 'Atención Médica Sellada (CU11)');
+            Auth::setFlash('success', "Consulta médica {$cita['codigo_cita']} finalizada como Atendida con notas clínicas registradas.", 'Atención Médica Registrada');
         } catch (\Throwable $e) {
-            Auth::setFlash('error', DatabaseExceptionParser::parse($e), 'Seguridad / Regla RN10');
+            Auth::setFlash('error', DatabaseExceptionParser::parse($e), 'No se pudo registrar la atención');
         }
 
         $this->redirect($returnTo);

@@ -24,7 +24,7 @@ $nombreUsuario = $currentUser['nombre_completo'] ?? ($currentUser['nombre_usuari
             <div class="d-inline-flex align-items-center gap-2 px-3 py-1 rounded-pill mb-2"
                  style="background: rgba(212, 230, 247, 0.18); font-size: 0.8rem;">
                 <i class="bi bi-shield-check"></i>
-                <span>Rol activo: <strong><?= e($rol) ?></strong> · Arquitectura Smart-DB PostgreSQL</span>
+                <span>Rol activo: <strong><?= e($rol) ?></strong> · Atención Médica Integral</span>
             </div>
             <h1 class="h3 fw-bold mb-1">Bienvenido(a), <?= e($nombreUsuario) ?></h1>
             <p class="mb-0 opacity-75 small">
@@ -188,7 +188,7 @@ $nombreUsuario = $currentUser['nombre_completo'] ?? ($currentUser['nombre_usuari
                     <div>
                         <div class="text-muted small fw-semibold text-uppercase">Pacientes Atendidos</div>
                         <div class="fs-2 fw-bold mt-1 text-success"><?= (int) ($kpis['total_atendidas'] ?? 0) ?></div>
-                        <span class="text-muted small">Consultas cerradas (CU11)</span>
+                        <span class="text-muted small">Consultas finalizadas</span>
                     </div>
                     <div class="vs-kpi-icon bg-success-subtle text-success">
                         <i class="bi bi-clipboard2-check-fill"></i>
@@ -221,7 +221,7 @@ $nombreUsuario = $currentUser['nombre_completo'] ?? ($currentUser['nombre_usuari
                     <div>
                         <div class="text-muted small fw-semibold text-uppercase">Pacientes Activos</div>
                         <div class="fs-2 fw-bold mt-1" style="color: var(--vs-navy);"><?= (int) ($kpis['pacientes_activos'] ?? 0) ?></div>
-                        <a href="<?= url('pacientes') ?>" class="small text-decoration-none fw-semibold">Padrón clínico (CU07) →</a>
+                        <a href="<?= url('pacientes') ?>" class="small text-decoration-none fw-semibold">Ver padrón de pacientes →</a>
                     </div>
                     <div class="vs-kpi-icon" style="background: var(--vs-sky); color: var(--vs-navy);">
                         <i class="bi bi-people-fill"></i>
@@ -284,7 +284,7 @@ $nombreUsuario = $currentUser['nombre_completo'] ?? ($currentUser['nombre_usuari
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <div>
                         <h2 class="h6 fw-bold mb-0" style="color: var(--vs-navy);">Distribución por Estado Clínico</h2>
-                        <small class="text-muted">Semáforo oficial RN10 (Ciclo de vida de citas)</small>
+                        <small class="text-muted">Resumen de estados de atención</small>
                     </div>
                     <span class="badge rounded-pill text-bg-light border">Tiempo Real</span>
                 </div>
@@ -302,7 +302,7 @@ $nombreUsuario = $currentUser['nombre_completo'] ?? ($currentUser['nombre_usuari
                     </div>
                     <?php if (in_array($rol, ['Administrador', 'Recepcionista'], true)): ?>
                         <a href="<?= url('reportes', ['tipo' => 'demanda_especialidad']) ?>" class="btn btn-sm btn-outline-primary">
-                            Detalle CU14
+                            Ver Detalle
                         </a>
                     <?php endif; ?>
                 </div>
@@ -377,12 +377,12 @@ $nombreUsuario = $currentUser['nombre_completo'] ?? ($currentUser['nombre_usuari
                                 <a href="<?= url('exportar/comprobante', ['id_cita' => $c['id_cita']]) ?>"
                                    target="_blank"
                                    class="btn btn-outline-primary"
-                                   title="Ticket PDF + Código QR (CU15)">
+                                   title="Ticket PDF + Código QR">
                                     <i class="bi bi-qr-code"></i> PDF QR
                                 </a>
                                 <a href="<?= url('historial', ['id_paciente' => $c['id_paciente']]) ?>"
                                    class="btn btn-outline-secondary"
-                                   title="Historial Clínico (CU13)">
+                                   title="Historial Clínico">
                                     <i class="bi bi-clipboard2-pulse"></i>
                                 </a>
                             </div>

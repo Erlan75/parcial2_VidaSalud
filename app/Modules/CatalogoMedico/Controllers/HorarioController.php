@@ -43,7 +43,7 @@ final class HorarioController extends Controller
         }
 
         $this->render('CatalogoMedico/horarios', [
-            'pageTitle'      => 'Horarios de Atención Médica (CU06)',
+            'pageTitle'      => 'Horarios de Atención',
             'activeMenu'     => 'horarios',
             'horarios'       => $horarios,
             'grillaSemanal'  => $grillaSemanal,
@@ -64,7 +64,7 @@ final class HorarioController extends Controller
         $duracion = (int) ($_POST['duracion_minutos'] ?? 30);
 
         if ($idMedico <= 0 || $diaSemana < 1 || $diaSemana > 6) {
-            Auth::setFlash('warning', 'Seleccione un médico activo y un día válido de Lunes (1) a Sábado (6).', 'Validación CU06');
+            Auth::setFlash('warning', 'Seleccione un médico activo y un día válido de Lunes (1) a Sábado (6).', 'Validación');
             $this->redirect('horarios');
         }
 
@@ -87,7 +87,7 @@ final class HorarioController extends Controller
                 $duracion,
                 client_ip()
             );
-            Auth::setFlash('success', "Turno semanal (#{$idHorario}) registrado exitosamente mediante sp_asignar_horario_medico.", 'Horario asignado');
+            Auth::setFlash('success', "Turno semanal (#{$idHorario}) registrado exitosamente.", 'Horario asignado');
         } catch (\Throwable $e) {
             Auth::setFlash('error', DatabaseExceptionParser::parse($e), 'Conflicto de Turno');
         }

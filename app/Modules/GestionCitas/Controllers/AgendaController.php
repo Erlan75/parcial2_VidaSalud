@@ -42,7 +42,7 @@ final class AgendaController extends Controller
         $proximasFechas = $citaModel->getProximasFechasConCitas($idMedico, 6);
 
         $this->render('GestionCitas/agenda', [
-            'pageTitle'      => 'Agenda Médica Diaria (CU12)',
+            'pageTitle'      => 'Agenda Médica Diaria',
             'activeMenu'     => 'agenda',
             'citas'          => $citasDia,
             'fecha'          => $fecha,

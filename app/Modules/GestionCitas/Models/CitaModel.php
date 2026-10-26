@@ -74,7 +74,47 @@ final class CitaModel
     }
 
     /**
-     * CU08 (Regla Smart-DB): Invoca obligatoriamente CALL sp_programar_cita(...)
+     * Validación anti-spam: verifica si el paciente ya cuenta con una cita activa
+     * ('Programada' o 'Confirmada') en el futuro para la misma especialidad o con el mismo médico.
+     */
+    public function verificarCitaActivaFuturaPaciente(int $idPaciente, int $idMedico, int $idEspecialidad): ?array
+    {
+        $pdo = Database::getConnection();
+        $sql = "
+            SELECT c.id_cita,
+                   c.codigo_cita,
+                   c.fecha_cita,
+                   TO_CHAR(c.hora_inicio, 'HH24:MI') AS hora_inicio_fmt,
+                   c.estado,
+                   c.id_medico,
+                   c.id_especialidad,
+                   m.nombres || ' ' || m.apellidos AS medico_nombre,
+                   e.nombre AS especialidad_nombre
+              FROM citas c
+              JOIN medicos m ON m.id_medico = c.id_medico
+              JOIN especialidades e ON e.id_especialidad = c.id_especialidad
+             WHERE c.id_paciente = :pac
+               AND c.estado IN ('Programada', 'Confirmada')
+               AND (
+                   c.fecha_cita > CURRENT_DATE
+                   OR (c.fecha_cita = CURRENT_DATE AND c.hora_fin >= CURRENT_TIME)
+               )
+               AND (c.id_especialidad = :esp OR c.id_medico = :med)
+             ORDER BY c.fecha_cita ASC, c.hora_inicio ASC
+             LIMIT 1
+        ";
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute([
+            ':pac' => $idPaciente,
+            ':esp' => $idEspecialidad,
+            ':med' => $idMedico,
+        ]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $row ?: null;
+    }
+
+    /**
+     * Invoca CALL sp_programar_cita(...) aplicando validación anti-spam de citas activas futuras
      */
     public function programarCita(
         int $idPaciente,
@@ -84,8 +124,23 @@ final class CitaModel
         string $fechaCita,
         string $horaInicio,
         string $motivoConsulta,
-        string $ip
+        string $ip,
+        bool $validarAntiSpam = true
     ): array {
+        if ($validarAntiSpam) {
+            $citaActiva = $this->verificarCitaActivaFuturaPaciente($idPaciente, $idMedico, $idEspecialidad);
+            if ($citaActiva !== null) {
+                $fechaFmt = date('d/m/Y', strtotime((string) $citaActiva['fecha_cita']));
+                $detalle = ((int) $citaActiva['id_medico'] === $idMedico)
+                    ? "con el(la) Dr(a). {$citaActiva['medico_nombre']}"
+                    : "en la especialidad de {$citaActiva['especialidad_nombre']}";
+                throw new \RuntimeException(
+                    "No es posible agendar la cita: ya tiene una cita activa ({$citaActiva['codigo_cita']} para el {$fechaFmt} a las {$citaActiva['hora_inicio_fmt']}) {$detalle}. " .
+                    "Para reservar un nuevo turno en esta especialidad o con este médico, debe esperar a que se realice su consulta actual o cancelarla previamente."
+                );
+            }
+        }
+
         $pdo = Database::getConnection();
         $stmt = $pdo->prepare("
             CALL sp_programar_cita(

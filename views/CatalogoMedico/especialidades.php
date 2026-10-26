@@ -10,7 +10,7 @@ $esAdmin = ($currentUser['rol'] ?? '') === 'Administrador';
     <div class="vs-card-header">
         <div>
             <h6 class="mb-0 fw-bold" style="color:var(--vs-navy);"><i class="bi bi-award-fill me-1"></i> Catálogo Oficial de Especialidades Médicas</h6>
-            <small class="text-muted">Validación de nombres normalizados únicos y baja lógica conservando integridad histórica (CU04)</small>
+            <small class="text-muted">Administración de especialidades clínicas y servicios médicos disponibles</small>
         </div>
         <div class="d-flex gap-2">
             <input type="text" class="form-control form-control-sm" style="max-width:220px;" placeholder="Filtrar especialidad..." data-table-filter="#tablaEspecialidades">

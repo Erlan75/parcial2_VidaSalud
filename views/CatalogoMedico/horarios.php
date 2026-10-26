@@ -13,7 +13,7 @@ $diasMap = dias_semana_map();
     <div class="vs-card-header">
         <div>
             <h6 class="mb-0 fw-bold" style="color:var(--vs-navy);"><i class="bi bi-calendar-week-fill me-1"></i> Grilla Semanal de Turnos Médicos (Lunes a Sábado)</h6>
-            <small class="text-muted">Configuración vía <code>CALL sp_asignar_horario_medico</code> y validación anti-solapamiento <code>trg_validar_horario_medico_solapado</code></small>
+            <small class="text-muted">Configuración de horarios de atención por consultorio y especialidad</small>
         </div>
         <div class="d-flex flex-wrap gap-2">
             <?php if (!(\App\Core\Auth::hasRole('Médico'))): ?>
@@ -92,7 +92,7 @@ $diasMap = dias_semana_map();
         <form method="POST" action="<?= url('horarios/guardar') ?>" class="modal-content needs-validation" novalidate id="formHorario">
             <input type="hidden" name="_csrf" value="<?= e($csrfToken) ?>">
             <div class="modal-header text-white" style="background:var(--vs-navy);">
-                <h5 class="modal-title fs-6 fw-bold"><i class="bi bi-clock-fill me-1"></i> Configurar Turno Semanal (CU06)</h5>
+                <h5 class="modal-title fs-6 fw-bold"><i class="bi bi-clock-fill me-1"></i> Configurar Turno Semanal</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
@@ -137,7 +137,7 @@ $diasMap = dias_semana_map();
                     </div>
                 </div>
                 <div class="form-text mt-2">
-                    <i class="bi bi-info-circle"></i> El motor validará automáticamente que <code>hora_fin &gt; hora_inicio</code> y que no exista solapamiento en el mismo día.
+                    <i class="bi bi-info-circle"></i> El sistema validará automáticamente que la hora de finalización sea mayor a la de inicio y que no exista solapamiento en el mismo día.
                 </div>
             </div>
             <div class="modal-footer">

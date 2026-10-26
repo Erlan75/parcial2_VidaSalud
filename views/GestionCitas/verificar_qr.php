@@ -10,7 +10,7 @@ declare(strict_types=1);
             <div class="vs-brand-cross"><i class="bi bi-hospital"></i></div>
             <div>
                 <h1 class="h5 mb-0 fw-bold">CLÍNICA VIDA SALUD</h1>
-                <small class="opacity-75">Verificador Digital de Comprobantes QR (CU15)</small>
+                <small class="opacity-75">Verificador Digital de Comprobantes QR</small>
             </div>
         </div>
         <i class="bi bi-patch-check-fill fs-2 text-info"></i>

@@ -35,7 +35,7 @@ final class MedicoController extends Controller
         ];
 
         $this->render('CatalogoMedico/medicos', [
-            'pageTitle'         => 'Plantel Médico y Especialidades (CU05)',
+            'pageTitle'         => 'Médicos',
             'activeMenu'        => 'medicos',
             'medicos'           => $this->model->listAll($filters),
             'especialidades'    => $espModel->listAll(true),
@@ -79,7 +79,7 @@ final class MedicoController extends Controller
             }
             $pwdCheck = Validator::validatePassword($password);
             if (!$pwdCheck['valid']) {
-                Auth::setFlash('error', 'Contraseña del médico rechazada: ' . implode(' ', $pwdCheck['errors']), 'Seguridad CU03');
+                Auth::setFlash('error', 'Contraseña del médico rechazada: ' . implode(' ', $pwdCheck['errors']), 'Política de Seguridad');
                 $this->redirect('medicos');
             }
             $newUserCreds = [
@@ -101,9 +101,9 @@ final class MedicoController extends Controller
                 (int) Auth::id(),
                 client_ip()
             );
-            Auth::setFlash('success', "Médico registrado con código {$res['codigo_medico']} vía sp_registrar_medico_completo.", 'Alta de Médico');
+            Auth::setFlash('success', "Médico registrado exitosamente con código {$res['codigo_medico']}.", 'Alta de Médico');
         } catch (\Throwable $e) {
-            Auth::setFlash('error', DatabaseExceptionParser::parse($e), 'Error del Motor PostgreSQL');
+            Auth::setFlash('error', DatabaseExceptionParser::parse($e), 'No se pudo registrar al médico');
         }
 
         $this->redirect('medicos');

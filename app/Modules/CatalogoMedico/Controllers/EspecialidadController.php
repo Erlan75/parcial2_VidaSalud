@@ -23,7 +23,7 @@ final class EspecialidadController extends Controller
     public function index(): void
     {
         $this->render('CatalogoMedico/especialidades', [
-            'pageTitle'      => 'Especialidades Médicas (CU04)',
+            'pageTitle'      => 'Especialidades',
             'activeMenu'     => 'especialidades',
             'especialidades' => $this->model->listAll(false),
         ]);

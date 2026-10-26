@@ -27,25 +27,25 @@ declare(strict_types=1);
                     <span class="small" style="color:var(--vs-sky);">Excelencia Médica y Atención Preventiva</span>
                 </div>
             </div>
-            <h1 class="display-6 fw-bold mb-3">Sistema Web de Gestión de Citas Médicas</h1>
+            <h1 class="display-6 fw-bold mb-3">Cuidamos tu salud y la de tu familia con excelencia médica</h1>
             <p class="lead opacity-90" style="font-size:1.02rem;">
-                Plataforma clínica integral con arquitectura <strong>Smart-DB PostgreSQL</strong>, prevención automática de solapamiento de turnos, fichas médicas preventivas y comprobantes digitales con validación QR.
+                Reserva tus consultas médicas en línea sin filas ni esperas. Contamos con especialistas altamente calificados en Medicina General, Pediatría, Ginecología, Odontología y Cardiología.
             </p>
         </div>
 
         <div class="p-3 rounded-4" style="background:rgba(255,255,255,0.10);border:1px solid rgba(212,230,247,0.22);">
             <div class="row g-2 text-center small">
                 <div class="col-4">
-                    <div class="fw-bold fs-5">17</div>
-                    <div class="opacity-75">Casos de Uso</div>
+                    <div class="fw-bold fs-5">+5 Especialidades</div>
+                    <div class="opacity-75">Atención Médica Integral</div>
                 </div>
                 <div class="col-4 border-start border-end border-light border-opacity-25">
-                    <div class="fw-bold fs-5">13</div>
-                    <div class="opacity-75">Tablas 3FN</div>
+                    <div class="fw-bold fs-5">Reserva en Línea</div>
+                    <div class="opacity-75">Horarios sin esperas</div>
                 </div>
                 <div class="col-4">
-                    <div class="fw-bold fs-5">Smart-DB</div>
-                    <div class="opacity-75">PL/pgSQL + PDO</div>
+                    <div class="fw-bold fs-5">Ficha Digital</div>
+                    <div class="opacity-75">Historial clínico seguro</div>
                 </div>
             </div>
         </div>

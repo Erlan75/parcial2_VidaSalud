@@ -24,7 +24,7 @@ final class SistemaController extends Controller
 
         $layout = Auth::check() ? 'main' : 'auth';
         $this->render('SeguridadAcceso/migracion', [
-            'pageTitle'       => 'Migración Automática Smart-DB y Configuración',
+            'pageTitle'       => 'Configuración de Base de Datos y Entorno',
             'activeMenu'      => 'migracion',
             'dbHealth'        => $health,
             'dbCfg'           => $dbCfg,
@@ -80,7 +80,7 @@ final class SistemaController extends Controller
         try {
             $result = DatabaseMigrator::run();
             $_SESSION['migration_result'] = $result;
-            Auth::setFlash('success', 'Migración Smart-DB completada en orden estricto (Script -> Triggers -> PA -> Población).', 'Migración 100% Exitosa');
+            Auth::setFlash('success', 'Migración de base de datos completada exitosamente.', 'Migración 100% Exitosa');
         } catch (\Throwable $e) {
             Auth::setFlash('error', DatabaseExceptionParser::parse($e), 'Fallo en Migración');
         }

@@ -13,7 +13,7 @@ $esPaciente = ($currentUser['rol'] ?? '') === 'Paciente';
         <form method="GET" action="<?= url('historial') ?>" class="row g-2 align-items-end">
             <input type="hidden" name="r" value="historial">
             <div class="col-12 col-md-9">
-                <label class="form-label small fw-semibold mb-1">Seleccionar Paciente para Consultar Expediente e Historial Clínico (CU13)</label>
+                <label class="form-label small fw-semibold mb-1">Seleccionar Paciente para Consultar Expediente e Historial Clínico</label>
                 <select name="id_paciente" class="form-select" onchange="this.form.submit()">
                     <?php foreach ($pacientesLista as $pl): ?>
                         <option value="<?= (int) $pl['id_paciente'] ?>" <?= ((int) ($paciente['id_paciente'] ?? 0) === (int) $pl['id_paciente']) ? 'selected' : '' ?>>

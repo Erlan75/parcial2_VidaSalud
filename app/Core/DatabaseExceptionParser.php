@@ -47,7 +47,7 @@ final class DatabaseExceptionParser
     private static function translateUniqueViolation(string $raw): string
     {
         if (str_contains($raw, 'pacientes_ci_key') || str_contains($raw, '(ci)')) {
-            return 'RN01: Ya existe un paciente registrado con esa Cédula de Identidad (CI).';
+            return 'Ya existe un paciente registrado con esa Cédula de Identidad (CI).';
         }
         if (str_contains($raw, 'usuarios_nombre_usuario_key')) {
             return 'El nombre de usuario ingresado ya se encuentra en uso.';
@@ -56,7 +56,7 @@ final class DatabaseExceptionParser
             return 'El correo electrónico ingresado ya se encuentra registrado en el sistema.';
         }
         if (str_contains($raw, 'medicos_registro_profesional_key')) {
-            return 'RN02: Ya existe un médico registrado con ese número de matrícula profesional.';
+            return 'Ya existe un médico registrado con ese número de matrícula profesional.';
         }
         if (str_contains($raw, 'especialidades_nombre_key')) {
             return 'Ya existe una especialidad médica registrada con ese nombre.';
@@ -65,7 +65,7 @@ final class DatabaseExceptionParser
             return 'El código de especialidad indicado ya está en uso.';
         }
         if (str_contains($raw, 'uq_medico_cita_horario_activo')) {
-            return 'RN07: Conflicto de horario. El médico ya tiene una cita médica activa en ese bloque horario.';
+            return 'Conflicto de horario. El médico ya tiene una cita médica activa en ese bloque horario.';
         }
         return 'El registro infringe una regla de unicidad: uno de los códigos, CI o correos ya existe.';
     }
@@ -98,7 +98,8 @@ final class DatabaseExceptionParser
         if (str_contains($msg, 'check constraint') || str_contains($msg, 'restricción «chk_')) {
             return self::translateCheckViolation($msg);
         }
-        return $msg;
+        $msg = preg_replace('/^(?:(?:RN|RF|CU)\d+(?:\s*[\/,]\s*(?:RN|RF|CU)\d+)*)\s*:\s*/iu', '', $msg) ?? $msg;
+        return trim($msg);
     }
 
     private static function sanitizeGeneric(string $raw): string

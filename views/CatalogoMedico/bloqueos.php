@@ -9,7 +9,7 @@ declare(strict_types=1);
     <div class="vs-card-header">
         <div>
             <h6 class="mb-0 fw-bold" style="color:var(--vs-navy);"><i class="bi bi-calendar-x-fill me-1"></i> Feriados Institucionales y Licencias Médicas</h6>
-            <small class="text-muted">Registro con <code>CALL sp_registrar_bloqueo_agenda</code> · Bloquea reservas automáticas en <code>fn_obtener_intervalos_disponibles</code> (CU16)</small>
+            <small class="text-muted">Gestión de días no laborables, vacaciones y licencias del personal médico</small>
         </div>
         <?php if ($canManage): ?>
             <button type="button" class="btn btn-sm btn-vs-primary px-3" data-bs-toggle="modal" data-bs-target="#modalNuevoBloqueo">
@@ -76,7 +76,7 @@ declare(strict_types=1);
         <form method="POST" action="<?= url('bloqueos/guardar') ?>" class="modal-content needs-validation" novalidate>
             <input type="hidden" name="_csrf" value="<?= e($csrfToken) ?>">
             <div class="modal-header text-white" style="background:var(--vs-navy);">
-                <h5 class="modal-title fs-6 fw-bold"><i class="bi bi-calendar-x-fill me-1"></i> Nuevo Feriado o Licencia Médica (CU16)</h5>
+                <h5 class="modal-title fs-6 fw-bold"><i class="bi bi-calendar-x-fill me-1"></i> Nuevo Feriado o Licencia Médica</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">

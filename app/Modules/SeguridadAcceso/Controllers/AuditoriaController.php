@@ -27,7 +27,7 @@ final class AuditoriaController extends Controller
         ];
 
         $this->render('SeguridadAcceso/auditorias', [
-            'pageTitle' => 'Bitácora de Auditoría del Sistema (CU17)',
+            'pageTitle' => 'Bitácora de Auditoría',
             'activeMenu'=> 'auditorias',
             'logs'      => $auditoriaModel->listLogs($filters, 300),
             'modulos'   => $auditoriaModel->getModulosDisponibles(),

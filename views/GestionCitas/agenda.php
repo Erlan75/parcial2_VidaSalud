@@ -37,7 +37,7 @@ $puedeAtender = in_array($rol, ['Médico', 'Administrador'], true);
             <h6 class="mb-0 fw-bold" style="color:var(--vs-navy);">
                 <i class="bi bi-clock-history me-1"></i> Agenda Médica Cronológica del Día: <?= date('d/m/Y', strtotime($fecha)) ?>
             </h6>
-            <small class="text-muted">Control de sala de espera (Recepción) y cierre clínico de consultas (Médico) · CU11 y CU12</small>
+            <small class="text-muted">Control de sala de espera y cierre clínico de consultas</small>
         </div>
         <a href="<?= url('exportar/reporte-pdf', ['tipo' => 'agenda_imprimible', 'fecha_desde' => $fecha, 'id_medico' => $selectedMedico]) ?>"
            target="_blank" class="btn btn-sm btn-outline-primary">
@@ -187,7 +187,7 @@ $puedeAtender = in_array($rol, ['Médico', 'Administrador'], true);
             <input type="hidden" name="id_cita" id="ag_id_cita">
             <input type="hidden" name="return_to" value="agenda&fecha=<?= urlencode($fecha) ?>">
             <div class="modal-header text-white" style="background:#198754;">
-                <h5 class="modal-title fs-6 fw-bold"><i class="bi bi-clipboard2-pulse-fill me-1"></i> Cierre de Atención Médica en Consultorio (CU11)</h5>
+                <h5 class="modal-title fs-6 fw-bold"><i class="bi bi-clipboard2-pulse-fill me-1"></i> Cierre de Atención Médica en Consultorio</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">

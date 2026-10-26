@@ -11,8 +11,8 @@ $tiposSangre = ['O+', 'O-', 'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'Desconocido']
 <div class="vs-card">
     <div class="vs-card-header">
         <div>
-            <h6 class="mb-0 fw-bold" style="color:var(--vs-navy);"><i class="bi bi-people-fill me-1"></i> Padrón Clínico de Pacientes y Fichas Preventivas</h6>
-            <small class="text-muted">Alta integral en pestañas con <code>CALL sp_registrar_paciente_completo</code> y ficha vía <code>CALL sp_actualizar_ficha_medica</code> (CU07)</small>
+            <h6 class="mb-0 fw-bold" style="color:var(--vs-navy);"><i class="bi bi-people-fill me-1"></i> Padrón Clínico de Pacientes y Ficha Médica</h6>
+            <small class="text-muted">Gestión integral de expedientes clínicos, antecedentes médicos y contactos de emergencia</small>
         </div>
         <?php if ($canRegister): ?>
             <button type="button" class="btn btn-sm btn-vs-primary px-3" data-bs-toggle="modal" data-bs-target="#modalNuevoPaciente">
@@ -122,7 +122,7 @@ $tiposSangre = ['O+', 'O-', 'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'Desconocido']
                                         onclick='abrirModalFicha(<?= json_encode($p, JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE) ?>)' title="Ver / Editar Ficha Médica Preventiva">
                                     <i class="bi bi-heart-pulse-fill text-danger"></i> Ficha
                                 </button>
-                                <a href="<?= url('historial', ['id_paciente' => $p['id_paciente']]) ?>" class="btn btn-sm btn-outline-dark" title="Historial clínico de citas (CU13)">
+                                <a href="<?= url('historial', ['id_paciente' => $p['id_paciente']]) ?>" class="btn btn-sm btn-outline-dark" title="Historial clínico de citas">
                                     <i class="bi bi-clock-history"></i>
                                 </a>
                                 <?php if ($canRegister): ?>
@@ -155,7 +155,7 @@ $tiposSangre = ['O+', 'O-', 'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'Desconocido']
         <form method="POST" action="<?= url('pacientes/guardar') ?>" class="modal-content needs-validation" novalidate>
             <input type="hidden" name="_csrf" value="<?= e($csrfToken) ?>">
             <div class="modal-header text-white" style="background:var(--vs-navy);">
-                <h5 class="modal-title fs-6 fw-bold"><i class="bi bi-person-vcard-fill me-1"></i> Registro Integral de Paciente (CU07 · sp_registrar_paciente_completo)</h5>
+                <h5 class="modal-title fs-6 fw-bold"><i class="bi bi-person-vcard-fill me-1"></i> Registrar Nuevo Paciente</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
@@ -229,7 +229,7 @@ $tiposSangre = ['O+', 'O-', 'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'Desconocido']
                                     </div>
                                     <div class="col-md-6">
                                         <label class="form-label small mb-1">Contraseña Inicial</label>
-                                        <input type="password" name="portal_password" class="form-control form-control-sm" value="Cher_4mi">
+                                        <input type="password" name="portal_password" class="form-control form-control-sm" placeholder="Mínimo 8 caracteres seguros">
                                     </div>
                                 </div>
                             </div>
@@ -408,7 +408,7 @@ $tiposSangre = ['O+', 'O-', 'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'Desconocido']
                 </div>
             </div>
             <div class="modal-footer justify-content-between">
-                <span class="small text-muted">Actualiza vía <code>CALL sp_actualizar_ficha_medica</code></span>
+                <span class="small text-muted">Los datos se guardarán en el expediente clínico del paciente</span>
                 <div>
                     <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cerrar</button>
                     <?php if ($canEditFicha): ?>

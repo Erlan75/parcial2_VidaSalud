@@ -11,7 +11,7 @@ declare(strict_types=1);
     <div class="vs-card-header">
         <div>
             <h6 class="mb-0 fw-bold" style="color:var(--vs-navy);"><i class="bi bi-person-badge-fill me-1"></i> Cuerpo Médico y Especialidades Asociadas</h6>
-            <small class="text-muted">Alta integral con <code>CALL sp_registrar_medico_completo</code> y relación N:M en <code>medico_especialidad</code> (CU05)</small>
+            <small class="text-muted">Gestión del plantel de especialistas, matrículas profesionales y consultorios</small>
         </div>
         <?php if ($canEdit): ?>
             <button type="button" class="btn btn-sm btn-vs-primary px-3" data-bs-toggle="modal" data-bs-target="#modalNuevoMedico">
@@ -132,13 +132,13 @@ declare(strict_types=1);
         <form method="POST" action="<?= url('medicos/guardar') ?>" class="modal-content needs-validation" novalidate>
             <input type="hidden" name="_csrf" value="<?= e($csrfToken) ?>">
             <div class="modal-header text-white" style="background:var(--vs-navy);">
-                <h5 class="modal-title fs-6 fw-bold"><i class="bi bi-person-badge-fill me-1"></i> Registrar Médico y Especialidades (sp_registrar_medico_completo)</h5>
+                <h5 class="modal-title fs-6 fw-bold"><i class="bi bi-person-badge-fill me-1"></i> Registrar Médico y Especialidades</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
                 <div class="row g-3">
                     <div class="col-md-4">
-                        <label class="form-label small fw-semibold">Matrícula Profesional (RN02) *</label>
+                        <label class="form-label small fw-semibold">Matrícula Profesional *</label>
                         <input type="text" name="registro_profesional" class="form-control text-uppercase" required placeholder="MP-SC-19850">
                     </div>
                     <div class="col-md-4">
@@ -177,7 +177,7 @@ declare(strict_types=1);
                                 <div class="col-md-7">
                                     <label class="form-label small fw-semibold">Contraseña Inicial *</label>
                                     <input type="password" name="password" id="med_new_pwd" class="form-control form-control-sm" required
-                                           data-strict-password data-pwd-meter="medPwdMeter" value="Cher_4mi">
+                                           data-strict-password data-pwd-meter="medPwdMeter" placeholder="Mínimo 8 caracteres seguros">
                                     <div id="medPwdMeter" class="d-flex flex-wrap gap-1 mt-1">
                                         <span class="pwd-rule-pill" data-rule="len">8+</span>
                                         <span class="pwd-rule-pill" data-rule="upper">A-Z</span>

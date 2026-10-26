@@ -22,7 +22,7 @@ $activeMenu = $activeMenu ?? 'dashboard';
 <div class="vs-backdrop" id="vsBackdrop"></div>
 
 <div class="vs-wrapper">
-    <!-- SIDEBAR CLÍNICO ORGANIZADO POR LOS 5 PAQUETES UML -->
+    <!-- SIDEBAR CLÍNICO -->
     <aside class="vs-sidebar" id="vsSidebar">
         <div class="vs-sidebar-brand">
             <div class="vs-brand-cross"><i class="bi bi-hospital"></i></div>
@@ -33,8 +33,7 @@ $activeMenu = $activeMenu ?? 'dashboard';
         </div>
 
         <nav class="vs-sidebar-nav">
-            <!-- PAQUETE 5: ReportesAnalitica (Resumen y Gerencia) -->
-            <div class="vs-nav-pkg">Panel & Analítica</div>
+            <div class="vs-nav-pkg">PANEL Y ANALÍTICA</div>
             <a href="<?= url('dashboard') ?>" class="vs-nav-link <?= $activeMenu === 'dashboard' ? 'active' : '' ?>">
                 <i class="bi bi-grid-1x2-fill"></i>
                 <span>Panel Principal</span>
@@ -42,87 +41,71 @@ $activeMenu = $activeMenu ?? 'dashboard';
             <?php if (in_array($rolActual, ['Administrador', 'Recepcionista'], true)): ?>
                 <a href="<?= url('reportes') ?>" class="vs-nav-link <?= $activeMenu === 'reportes' ? 'active' : '' ?>">
                     <i class="bi bi-bar-chart-line-fill"></i>
-                    <span>Reportes y PDF/QR (CU14/15)</span>
+                    <span>Reportes y Estadísticas</span>
                 </a>
             <?php endif; ?>
 
-            <!-- PAQUETE 4: GestionCitas -->
-            <div class="vs-nav-pkg">Paquete · Gestión Citas</div>
+            <div class="vs-nav-pkg">GESTIÓN DE CITAS</div>
             <?php if (in_array($rolActual, ['Administrador', 'Recepcionista', 'Paciente'], true)): ?>
                 <a href="<?= url('citas/programar') ?>" class="vs-nav-link <?= $activeMenu === 'citas_programar' ? 'active' : '' ?>">
                     <i class="bi bi-calendar2-plus-fill"></i>
-                    <span>Programar Cita (CU08)</span>
+                    <span>Programar Cita</span>
                 </a>
             <?php endif; ?>
             <a href="<?= url('citas') ?>" class="vs-nav-link <?= $activeMenu === 'citas_listado' ? 'active' : '' ?>">
                 <i class="bi bi-journal-medical"></i>
-                <span><?= $rolActual === 'Paciente' ? 'Mis Citas y Tickets QR' : 'Control de Citas (CU09-11)' ?></span>
+                <span><?= $rolActual === 'Paciente' ? 'Mis Citas' : 'Control de Citas' ?></span>
             </a>
             <?php if (in_array($rolActual, ['Administrador', 'Recepcionista', 'Médico'], true)): ?>
                 <a href="<?= url('agenda') ?>" class="vs-nav-link <?= $activeMenu === 'agenda' ? 'active' : '' ?>">
                     <i class="bi bi-clock-history"></i>
-                    <span>Agenda Médica Diaria (CU12)</span>
+                    <span>Agenda Médica Diaria</span>
                 </a>
             <?php endif; ?>
             <a href="<?= url('historial') ?>" class="vs-nav-link <?= $activeMenu === 'historial' ? 'active' : '' ?>">
                 <i class="bi bi-clipboard2-pulse-fill"></i>
-                <span><?= $rolActual === 'Paciente' ? 'Mi Historial Clínico (CU13)' : 'Historial por Paciente (CU13)' ?></span>
+                <span><?= $rolActual === 'Paciente' ? 'Mi Historial Clínico' : 'Historial por Paciente' ?></span>
             </a>
 
-            <!-- PAQUETE 3: PacientesClinica -->
             <?php if (in_array($rolActual, ['Administrador', 'Recepcionista', 'Médico'], true)): ?>
-                <div class="vs-nav-pkg">Paquete · Pacientes Clínica</div>
+                <div class="vs-nav-pkg">PACIENTES</div>
                 <a href="<?= url('pacientes') ?>" class="vs-nav-link <?= $activeMenu === 'pacientes' ? 'active' : '' ?>">
                     <i class="bi bi-people-fill"></i>
-                    <span>Pacientes y Fichas (CU07)</span>
+                    <span>Pacientes y Ficha Médica</span>
                 </a>
             <?php endif; ?>
 
-            <!-- PAQUETE 2: CatalogoMedico -->
             <?php if (in_array($rolActual, ['Administrador', 'Recepcionista', 'Médico'], true)): ?>
-                <div class="vs-nav-pkg">Paquete · Catálogo Médico</div>
+                <div class="vs-nav-pkg">CATÁLOGO MÉDICO</div>
                 <?php if (in_array($rolActual, ['Administrador', 'Recepcionista'], true)): ?>
                     <a href="<?= url('especialidades') ?>" class="vs-nav-link <?= $activeMenu === 'especialidades' ? 'active' : '' ?>">
                         <i class="bi bi-award-fill"></i>
-                        <span>Especialidades (CU04)</span>
+                        <span>Especialidades</span>
                     </a>
                     <a href="<?= url('medicos') ?>" class="vs-nav-link <?= $activeMenu === 'medicos' ? 'active' : '' ?>">
                         <i class="bi bi-person-badge-fill"></i>
-                        <span>Médicos (CU05)</span>
+                        <span>Médicos</span>
                     </a>
                 <?php endif; ?>
                 <a href="<?= url('horarios') ?>" class="vs-nav-link <?= $activeMenu === 'horarios' ? 'active' : '' ?>">
                     <i class="bi bi-calendar-week-fill"></i>
-                    <span><?= $rolActual === 'Médico' ? 'Mis Horarios (CU06)' : 'Horarios Atención (CU06)' ?></span>
+                    <span><?= $rolActual === 'Médico' ? 'Mis Horarios' : 'Horarios de Atención' ?></span>
                 </a>
                 <a href="<?= url('bloqueos') ?>" class="vs-nav-link <?= $activeMenu === 'bloqueos' ? 'active' : '' ?>">
                     <i class="bi bi-calendar-x-fill"></i>
-                    <span>Feriados y Bloqueos (CU16)</span>
+                    <span>Feriados y Bloqueos</span>
                 </a>
             <?php endif; ?>
 
-            <!-- PAQUETE 1: SeguridadAcceso -->
-            <div class="vs-nav-pkg">Paquete · Seguridad Acceso</div>
+            <div class="vs-nav-pkg">SEGURIDAD Y ACCESO</div>
             <?php if ($rolActual === 'Administrador'): ?>
                 <a href="<?= url('usuarios') ?>" class="vs-nav-link <?= $activeMenu === 'usuarios' ? 'active' : '' ?>">
                     <i class="bi bi-shield-lock-fill"></i>
-                    <span>Usuarios y Roles (CU03)</span>
+                    <span>Usuarios y Roles</span>
                 </a>
                 <a href="<?= url('auditorias') ?>" class="vs-nav-link <?= $activeMenu === 'auditorias' ? 'active' : '' ?>">
                     <i class="bi bi-eye-fill"></i>
-                    <span>Bitácora Auditoría (CU17)</span>
-                </a>
-            <?php endif; ?>
-            <?php if (in_array($rolActual, ['Administrador', 'Recepcionista'], true)): ?>
-                <a href="<?= url('sistema/pruebas') ?>" class="vs-nav-link <?= $activeMenu === 'pruebas' ? 'active' : '' ?>">
-                    <i class="bi bi-patch-check-fill"></i>
-                    <span>10 Pruebas del Examen</span>
-                </a>
-            <?php endif; ?>
-            <?php if ($rolActual === 'Administrador'): ?>
-                <a href="<?= url('sistema/migracion') ?>" class="vs-nav-link <?= $activeMenu === 'migracion' ? 'active' : '' ?>">
-                    <i class="bi bi-database-fill-gear"></i>
-                    <span>Migración BD & SMTP</span>
+                    <span>Bitácora de Auditoría</span>
                 </a>
             <?php endif; ?>
             <a href="<?= url('seguridad/perfil') ?>" class="vs-nav-link <?= $activeMenu === 'perfil' ? 'active' : '' ?>">
@@ -137,7 +120,7 @@ $activeMenu = $activeMenu ?? 'dashboard';
                     <div class="fw-semibold small text-white text-truncate"><?= e($currentUser['nombre_completo'] ?? '') ?></div>
                     <span class="badge bg-light text-dark" style="font-size:0.7rem;"><?= e($rolActual) ?></span>
                 </div>
-                <button type="button" class="btn btn-sm btn-danger flex-shrink-0" data-bs-toggle="modal" data-bs-target="#modalConfirmLogout" title="Cerrar Sesión (CU02)">
+                <button type="button" class="btn btn-sm btn-danger flex-shrink-0" data-bs-toggle="modal" data-bs-target="#modalConfirmLogout" title="Cerrar Sesión">
                     <i class="bi bi-box-arrow-right"></i>
                 </button>
             </div>
@@ -200,18 +183,18 @@ $activeMenu = $activeMenu ?? 'dashboard';
     </div>
 </div>
 
-<!-- MODAL DE CONFIRMACIÓN PARA CERRAR SESIÓN (CU02) -->
+<!-- MODAL DE CONFIRMACIÓN PARA CERRAR SESIÓN -->
 <div class="modal fade" id="modalConfirmLogout" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-sm">
         <div class="modal-content border-0 shadow">
             <div class="modal-header text-white" style="background:var(--vs-navy);">
-                <h5 class="modal-title fs-6 fw-bold"><i class="bi bi-shield-exclamation me-1"></i> Cerrar Sesión (CU02)</h5>
+                <h5 class="modal-title fs-6 fw-bold"><i class="bi bi-shield-exclamation me-1"></i> Cerrar Sesión</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body text-center py-4">
                 <i class="bi bi-box-arrow-right text-danger display-5 d-block mb-2"></i>
                 <p class="mb-1 fw-semibold">¿Desea finalizar su sesión actual?</p>
-                <p class="text-muted small mb-0">Se registrará el evento <code>LOGOUT</code> en la bitácora de auditoría y se bloquearán las vistas en caché.</p>
+                <p class="text-muted small mb-0">Su sesión se cerrará de forma segura en este dispositivo.</p>
             </div>
             <div class="modal-footer justify-content-center border-0 pt-0">
                 <button type="button" class="btn btn-light px-3" data-bs-dismiss="modal">Cancelar</button>

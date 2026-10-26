@@ -36,10 +36,10 @@ declare(strict_types=1);
 <div class="vs-card">
     <div class="vs-card-header">
         <div>
-            <h6 class="mb-0 fw-bold" style="color:var(--vs-navy);"><i class="bi bi-journal-code me-1"></i> Registro Inmutable de Auditoría (RF17 · Solo Lectura)</h6>
-            <small class="text-muted">Trazabilidad automática generada por Triggers PL/pgSQL y Procedimientos Almacenados</small>
+            <h6 class="mb-0 fw-bold" style="color:var(--vs-navy);"><i class="bi bi-journal-code me-1"></i> Registro Inmutable de Auditoría</h6>
+            <small class="text-muted">Historial de actividad y trazabilidad de operaciones del sistema</small>
         </div>
-        <span class="badge text-bg-dark"><i class="bi bi-lock-fill"></i> Inmutable JSONB</span>
+        <span class="badge text-bg-dark"><i class="bi bi-lock-fill"></i> Solo Lectura</span>
     </div>
 
     <div class="p-3 border-bottom bg-light bg-opacity-50">

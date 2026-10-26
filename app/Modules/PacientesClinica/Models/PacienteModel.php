@@ -141,7 +141,7 @@ final class PacienteModel
     public function registrarPacienteCompleto(
         array $data,
         ?array $portalCredentials,
-        int $idUsuarioEjecutor,
+        ?int $idUsuarioEjecutor,
         string $ip
     ): array {
         $pdo = Database::getConnection();
@@ -168,16 +168,15 @@ final class PacienteModel
                         NULL
                     )
                 ");
-                $spUser->execute([
-                    ':rol' => $rolPacId,
-                    ':nom' => $nombreCompleto,
-                    ':usr' => trim((string) $portalCredentials['nombre_usuario']),
-                    ':cor' => strtolower(trim((string) $data['correo'])),
-                    ':tel' => trim((string) $data['telefono']),
-                    ':pwd' => $pwdHash,
-                    ':adm' => $idUsuarioEjecutor,
-                    ':ip'  => $ip,
-                ]);
+                $spUser->bindValue(':rol', $rolPacId, PDO::PARAM_INT);
+                $spUser->bindValue(':nom', $nombreCompleto, PDO::PARAM_STR);
+                $spUser->bindValue(':usr', trim((string) $portalCredentials['nombre_usuario']), PDO::PARAM_STR);
+                $spUser->bindValue(':cor', strtolower(trim((string) $data['correo'])), PDO::PARAM_STR);
+                $spUser->bindValue(':tel', trim((string) $data['telefono']), PDO::PARAM_STR);
+                $spUser->bindValue(':pwd', $pwdHash, PDO::PARAM_STR);
+                $spUser->bindValue(':adm', $idUsuarioEjecutor, ($idUsuarioEjecutor === null || $idUsuarioEjecutor <= 0) ? PDO::PARAM_NULL : PDO::PARAM_INT);
+                $spUser->bindValue(':ip', $ip, PDO::PARAM_STR);
+                $spUser->execute();
                 $outUser = $spUser->fetch(PDO::FETCH_ASSOC);
                 $idUsuarioPortal = (int) ($outUser['p_id_usuario'] ?? 0);
             }
@@ -238,6 +237,7 @@ final class PacienteModel
             return [
                 'id_paciente'     => $idPac,
                 'codigo_paciente' => (string) ($out['p_codigo_paciente'] ?? ''),
+                'id_usuario'      => $idUsuarioPortal,
             ];
         } catch (\Throwable $e) {
             if ($pdo->inTransaction()) {

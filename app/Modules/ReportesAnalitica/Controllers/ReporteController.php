@@ -35,7 +35,7 @@ final class ReporteController extends Controller
         $chartEspecialidades = $reporteModel->getChartDemandaEspecialidades($filters);
 
         $this->render('ReportesAnalitica/reportes', [
-            'pageTitle'           => 'Reportes Administrativos y Analítica (CU14 / CU15)',
+            'pageTitle'           => 'Reportes y Estadísticas',
             'activeMenu'          => 'reportes',
             'tipoReporte'         => $tipo,
             'filters'             => $filters,

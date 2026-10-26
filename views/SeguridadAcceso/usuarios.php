@@ -9,8 +9,8 @@ declare(strict_types=1);
 <div class="vs-card mb-4">
     <div class="vs-card-header">
         <div>
-            <h6 class="mb-0 fw-bold" style="color:var(--vs-navy);"><i class="bi bi-people-fill me-1"></i> Directorio RBAC de Usuarios del Sistema</h6>
-            <small class="text-muted">Alta transaccional vía <code>CALL sp_crear_usuario</code> y baja lógica con <code>CALL sp_conmutar_estado_usuario</code></small>
+            <h6 class="mb-0 fw-bold" style="color:var(--vs-navy);"><i class="bi bi-people-fill me-1"></i> Directorio de Usuarios y Roles del Sistema</h6>
+            <small class="text-muted">Administración de cuentas de acceso y perfiles del personal clínico</small>
         </div>
         <button type="button" class="btn btn-vs-primary btn-sm px-3" data-bs-toggle="modal" data-bs-target="#modalNuevoUsuario">
             <i class="bi bi-person-plus-fill me-1"></i> Nuevo Usuario
@@ -130,7 +130,7 @@ declare(strict_types=1);
         <form method="POST" action="<?= url('usuarios/guardar') ?>" class="modal-content needs-validation" novalidate>
             <input type="hidden" name="_csrf" value="<?= e($csrfToken) ?>">
             <div class="modal-header text-white" style="background:var(--vs-navy);">
-                <h5 class="modal-title fs-6 fw-bold"><i class="bi bi-person-plus-fill me-1"></i> Registrar Nuevo Usuario (CU03 · sp_crear_usuario)</h5>
+                <h5 class="modal-title fs-6 fw-bold"><i class="bi bi-person-plus-fill me-1"></i> Registrar Nuevo Usuario</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
@@ -160,9 +160,9 @@ declare(strict_types=1);
                         <input type="text" name="telefono" class="form-control" placeholder="70012345">
                     </div>
                     <div class="col-12">
-                        <label class="form-label small fw-semibold">Contraseña Segura (Cifrado BCRYPT) *</label>
+                        <label class="form-label small fw-semibold">Contraseña Segura *</label>
                         <input type="password" name="password" class="form-control" required
-                               data-strict-password data-pwd-meter="newUsrPwdMeter" placeholder="Ej. Cher_4mi">
+                               data-strict-password data-pwd-meter="newUsrPwdMeter" placeholder="Mínimo 8 caracteres seguros">
                         <div id="newUsrPwdMeter" class="d-flex flex-wrap gap-1 mt-2">
                             <span class="pwd-rule-pill" data-rule="len">8+ caract.</span>
                             <span class="pwd-rule-pill" data-rule="upper">1 Mayúscula</span>

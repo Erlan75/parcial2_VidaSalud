@@ -38,6 +38,8 @@ final class Router
             'seguridad/login',
             'seguridad/forgot',
             'seguridad/reset',
+            'registro-paciente',
+            'seguridad/registro-paciente',
             'citas/verificar',
             'sistema/migracion',
             'sistema/guardar-config',
@@ -67,10 +69,10 @@ final class Router
         }
 
         // Verificar salud de BD si intenta usar módulos internos y la BD aún no fue migrada
-        if (!str_starts_with($route, 'sistema/') && !in_array($route, ['seguridad/login', 'seguridad/logout', 'seguridad/forgot', 'seguridad/reset'], true)) {
+        if (!str_starts_with($route, 'sistema/') && !in_array($route, ['seguridad/login', 'seguridad/logout', 'seguridad/forgot', 'seguridad/reset', 'registro-paciente', 'seguridad/registro-paciente'], true)) {
             $health = Database::checkHealth();
             if (!$health['migrated']) {
-                Auth::setFlash('warning', 'La base de datos PostgreSQL aún no está inicializada. Ejecute la migración Smart-DB en 1 clic.', 'Configuración Inicial');
+                Auth::setFlash('warning', 'La base de datos PostgreSQL aún no está inicializada. Ejecute la configuración inicial en 1 clic.', 'Configuración Inicial');
                 header('Location: ' . url('sistema/migracion'));
                 exit;
             }
@@ -78,9 +80,11 @@ final class Router
 
         // Mapa declarativo de rutas -> [Controlador, Método, Roles Permitidos (vacío = público o todos autenticados)]
         $routes = [
-            // PAQUETE 1: SeguridadAcceso
-            'seguridad/login'            => [AuthController::class, $method === 'POST' ? 'loginPost' : 'loginForm', []],
-            'seguridad/logout'           => [AuthController::class, 'logout', []],
+            // Seguridad y Acceso
+            'seguridad/login'             => [AuthController::class, $method === 'POST' ? 'loginPost' : 'loginForm', []],
+            'registro-paciente'           => [AuthController::class, $method === 'POST' ? 'registroPacientePost' : 'registroPacienteForm', []],
+            'seguridad/registro-paciente' => [AuthController::class, $method === 'POST' ? 'registroPacientePost' : 'registroPacienteForm', []],
+            'seguridad/logout'            => [AuthController::class, 'logout', []],
             'seguridad/forgot'           => [AuthController::class, $method === 'POST' ? 'forgotPost' : 'forgotForm', []],
             'seguridad/reset'            => [AuthController::class, $method === 'POST' ? 'resetPost' : 'resetForm', []],
             'seguridad/perfil'           => [AuthController::class, 'perfil', []],

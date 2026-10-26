@@ -30,7 +30,7 @@ final class UsuarioController extends Controller
         ];
 
         $this->render('SeguridadAcceso/usuarios', [
-            'pageTitle'  => 'Gestión de Usuarios y Roles (CU03)',
+            'pageTitle'  => 'Usuarios y Roles',
             'activeMenu' => 'usuarios',
             'usuarios'   => $this->model->listAll($filters),
             'roles'      => $this->model->getRoles(),
@@ -61,7 +61,7 @@ final class UsuarioController extends Controller
 
         $pwdCheck = Validator::validatePassword($password);
         if (!$pwdCheck['valid']) {
-            Auth::setFlash('error', 'Contraseña rechazada: ' . implode(' ', $pwdCheck['errors']), 'Política de Seguridad CU03');
+            Auth::setFlash('error', 'Contraseña rechazada: ' . implode(' ', $pwdCheck['errors']), 'Política de Seguridad');
             $this->redirect('usuarios');
         }
 
@@ -76,9 +76,9 @@ final class UsuarioController extends Controller
                 (int) Auth::id(),
                 client_ip()
             );
-            Auth::setFlash('success', "Usuario '{$nombreUsuario}' (ID #{$nuevoId}) creado exitosamente vía sp_crear_usuario.", 'Alta de Usuario');
+            Auth::setFlash('success', "Usuario '{$nombreUsuario}' (ID #{$nuevoId}) creado exitosamente.", 'Alta de Usuario');
         } catch (\Throwable $e) {
-            Auth::setFlash('error', DatabaseExceptionParser::parse($e), 'Error del Motor PostgreSQL');
+            Auth::setFlash('error', DatabaseExceptionParser::parse($e), 'No se pudo crear el usuario');
         }
 
         $this->redirect('usuarios');
@@ -109,7 +109,7 @@ final class UsuarioController extends Controller
         if ($newPassword !== '') {
             $pwdCheck = Validator::validatePassword($newPassword);
             if (!$pwdCheck['valid']) {
-                Auth::setFlash('error', 'Nueva contraseña rechazada: ' . implode(' ', $pwdCheck['errors']), 'Política de Seguridad CU03');
+                Auth::setFlash('error', 'Nueva contraseña rechazada: ' . implode(' ', $pwdCheck['errors']), 'Política de Seguridad');
                 $this->redirect('usuarios');
             }
         }
@@ -126,7 +126,7 @@ final class UsuarioController extends Controller
                 (int) Auth::id(),
                 client_ip()
             );
-            Auth::setFlash('success', "Datos del usuario '{$nombreUsuario}' actualizados y auditados.", 'Actualización exitosa');
+            Auth::setFlash('success', "Datos del usuario '{$nombreUsuario}' actualizados correctamente.", 'Actualización exitosa');
         } catch (\Throwable $e) {
             Auth::setFlash('error', DatabaseExceptionParser::parse($e), 'Error al actualizar');
         }
@@ -145,7 +145,7 @@ final class UsuarioController extends Controller
 
         try {
             $this->model->conmutarEstado($idObjetivo, (int) Auth::id(), client_ip());
-            Auth::setFlash('success', 'Estado de la cuenta actualizado correctamente mediante sp_conmutar_estado_usuario.', 'Cambio de Estado');
+            Auth::setFlash('success', 'Estado de la cuenta actualizado correctamente.', 'Cambio de Estado');
         } catch (\Throwable $e) {
             Auth::setFlash('error', DatabaseExceptionParser::parse($e), 'Operación rechazada');
         }

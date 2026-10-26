@@ -8,11 +8,12 @@ use App\Core\Controller;
 use App\Core\DatabaseExceptionParser;
 use App\Core\Mailer;
 use App\Core\Validator;
+use App\Modules\PacientesClinica\Models\PacienteModel;
 use App\Modules\SeguridadAcceso\Models\UsuarioModel;
 use Database;
 
 /**
- * Controlador de Autenticación, Cierre de Sesión, Perfil y Recuperación SMTP (CU01, CU02)
+ * Controlador de Autenticación, Registro de Pacientes, Cierre de Sesión, Perfil y Recuperación SMTP
  */
 final class AuthController extends Controller
 {
@@ -30,10 +31,131 @@ final class AuthController extends Controller
         }
 
         $health = Database::checkHealth();
+        $openModal = !empty($_GET['registro']) || !empty($_SESSION['open_register_modal']);
+        unset($_SESSION['open_register_modal']);
+
         $this->render('SeguridadAcceso/login', [
-            'pageTitle' => 'Iniciar Sesión · Clínica Vida Salud',
-            'dbHealth'  => $health,
+            'pageTitle'         => 'Iniciar Sesión · Clínica Vida Salud',
+            'dbHealth'          => $health,
+            'openRegisterModal' => $openModal,
         ], 'auth');
+    }
+
+    public function registroPacienteForm(): void
+    {
+        if (Auth::check()) {
+            $this->redirect(Auth::homeRouteForRole(Auth::role()));
+        }
+
+        $health = Database::checkHealth();
+        $this->render('SeguridadAcceso/login', [
+            'pageTitle'         => 'Crear Cuenta de Paciente · Clínica Vida Salud',
+            'dbHealth'          => $health,
+            'openRegisterModal' => true,
+        ], 'auth');
+    }
+
+    public function registroPacientePost(): void
+    {
+        $this->validatePostWithCsrf();
+
+        $ci = trim((string) ($_POST['ci'] ?? ''));
+        $nombres = trim((string) ($_POST['nombres'] ?? ''));
+        $apellidos = trim((string) ($_POST['apellidos'] ?? ''));
+        $fnac = trim((string) ($_POST['fecha_nacimiento'] ?? ''));
+        $sexo = strtoupper(trim((string) ($_POST['sexo'] ?? '')));
+        $telefono = trim((string) ($_POST['telefono'] ?? ''));
+        $correo = strtolower(trim((string) ($_POST['correo'] ?? '')));
+        $direccion = trim((string) ($_POST['direccion'] ?? ''));
+        $nombreUsuario = trim((string) ($_POST['nombre_usuario'] ?? ''));
+        $password = (string) ($_POST['password'] ?? '');
+
+        if (!Validator::isValidCI($ci)) {
+            $_SESSION['open_register_modal'] = true;
+            Auth::setFlash('warning', 'Ingrese una Cédula de Identidad válida (5 a 12 dígitos).', 'Validación');
+            $this->redirect('seguridad/login');
+        }
+
+        if (strlen($nombres) < 2 || strlen($apellidos) < 2 || !in_array($sexo, ['M', 'F', 'O'], true)) {
+            $_SESSION['open_register_modal'] = true;
+            Auth::setFlash('warning', 'Complete sus nombres, apellidos y sexo.', 'Datos incompletos');
+            $this->redirect('seguridad/login');
+        }
+
+        if (!Validator::isValidDate($fnac) || $fnac > date('Y-m-d')) {
+            $_SESSION['open_register_modal'] = true;
+            Auth::setFlash('warning', 'Ingrese una fecha de nacimiento válida.', 'Validación');
+            $this->redirect('seguridad/login');
+        }
+
+        if (!Validator::isValidPhone($telefono) || !Validator::isValidEmail($correo) || strlen($direccion) < 3) {
+            $_SESSION['open_register_modal'] = true;
+            Auth::setFlash('warning', 'Complete un número de teléfono, correo electrónico válido y dirección domiciliaria.', 'Datos de contacto');
+            $this->redirect('seguridad/login');
+        }
+
+        if (strlen($nombreUsuario) < 3) {
+            $_SESSION['open_register_modal'] = true;
+            Auth::setFlash('warning', 'El nombre de usuario debe contener al menos 3 caracteres.', 'Credenciales');
+            $this->redirect('seguridad/login');
+        }
+
+        $pwdCheck = Validator::validatePassword($password);
+        if (!$pwdCheck['valid']) {
+            $_SESSION['open_register_modal'] = true;
+            Auth::setFlash('error', 'Contraseña insegura: ' . implode(' ', $pwdCheck['errors']), 'Seguridad de contraseña');
+            $this->redirect('seguridad/login');
+        }
+
+        try {
+            $pacienteModel = new PacienteModel();
+            $res = $pacienteModel->registrarPacienteCompleto(
+                [
+                    'ci'               => $ci,
+                    'nombres'          => $nombres,
+                    'apellidos'        => $apellidos,
+                    'fecha_nacimiento' => $fnac,
+                    'sexo'             => $sexo,
+                    'telefono'         => $telefono,
+                    'correo'           => $correo,
+                    'direccion'        => $direccion,
+                    'tipo_sangre'      => 'Desconocido',
+                ],
+                [
+                    'nombre_usuario' => $nombreUsuario,
+                    'password'       => $password,
+                ],
+                null,
+                client_ip()
+            );
+
+            $user = !empty($res['id_usuario'])
+                ? $this->usuarioModel->findById((int) $res['id_usuario'])
+                : $this->usuarioModel->findByIdentifier($nombreUsuario);
+
+            if ($user) {
+                Auth::login($user);
+                $this->usuarioModel->registerLoginAudit(
+                    (int) $user['id_usuario'],
+                    (string) $user['nombre_usuario'],
+                    (string) $user['rol_nombre'],
+                    client_ip()
+                );
+                Auth::setFlash(
+                    'success',
+                    '¡Cuenta creada exitosamente! Bienvenido(a) ' . $user['nombre_completo'] . ' (Expediente ' . $res['codigo_paciente'] . '). Ya puede programar su cita médica.',
+                    'Registro completado'
+                );
+                $this->redirect('citas/programar');
+            }
+
+            Auth::setFlash('success', 'Cuenta registrada exitosamente. Ya puede iniciar sesión.', 'Registro completado');
+            $this->redirect('seguridad/login');
+        } catch (\Throwable $e) {
+            $_SESSION['open_register_modal'] = true;
+            Auth::setFlash('error', DatabaseExceptionParser::parse($e), 'No se pudo completar el registro');
+            $this->redirect('seguridad/login');
+        }
     }
 
     public function loginPost(): void

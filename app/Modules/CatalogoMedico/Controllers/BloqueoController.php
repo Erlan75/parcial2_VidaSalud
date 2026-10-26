@@ -28,7 +28,7 @@ final class BloqueoController extends Controller
         $scopeMed = Auth::hasRole('Médico') ? Auth::medicoId() : null;
 
         $this->render('CatalogoMedico/bloqueos', [
-            'pageTitle'  => 'Feriados y Bloqueos de Agenda (CU16)',
+            'pageTitle'  => 'Feriados y Licencias',
             'activeMenu' => 'bloqueos',
             'bloqueos'   => $this->model->listAll($scopeMed),
             'medicos'    => $medicoModel->listAll(['estado' => 'Activo']),
@@ -76,9 +76,9 @@ final class BloqueoController extends Controller
                 $motivo,
                 client_ip()
             );
-            Auth::setFlash('success', "Bloqueo de agenda (#{$id}) registrado exitosamente vía sp_registrar_bloqueo_agenda.", 'Bloqueo activo');
+            Auth::setFlash('success', "Bloqueo de agenda (#{$id}) registrado exitosamente.", 'Bloqueo activo');
         } catch (\Throwable $e) {
-            Auth::setFlash('error', DatabaseExceptionParser::parse($e), 'Rechazo del Motor PostgreSQL');
+            Auth::setFlash('error', DatabaseExceptionParser::parse($e), 'No se pudo registrar el bloqueo');
         }
 
         $this->redirect('bloqueos');

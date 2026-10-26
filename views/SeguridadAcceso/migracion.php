@@ -10,10 +10,10 @@ declare(strict_types=1);
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
         <div>
             <h4 class="h5 fw-bold mb-1" style="color:var(--vs-navy);">
-                <i class="bi bi-database-fill-gear me-1"></i> Asistente de Migración Smart-DB y Entorno (.env)
+                <i class="bi bi-database-fill-gear me-1"></i> Configuración de Base de Datos y Entorno
             </h4>
             <p class="text-muted small mb-0">
-                Ejecución automática en orden estricto: <code>1º Script.sql</code> → <code>2º Triggers.sql</code> → <code>3º PA.sql</code> → <code>4º poblacion.sql</code> → <code>5º extensions.sql</code>
+                Inicialización de tablas, funciones y configuración de correo electrónico institucional
             </p>
         </div>
         <div class="d-flex gap-2">
@@ -40,8 +40,8 @@ declare(strict_types=1);
                 <div class="small text-muted">Crea automáticamente la base de datos si no existe, estructura las 13 tablas en 3FN, instala los 8 triggers, los procedimientos almacenados y carga la semilla oficial.</div>
             </div>
             <form method="POST" action="<?= url('sistema/ejecutar-migracion') ?>"
-                  data-confirm="Se reconstruirán las tablas y datos semilla iniciales de Clínica Vida Salud en PostgreSQL. ¿Desea ejecutar la migración ahora?"
-                  data-confirm-title="Ejecutar Migración Smart-DB">
+                  data-confirm="Se reconstruirán las tablas y datos iniciales de Clínica Vida Salud. ¿Desea continuar?"
+                  data-confirm-title="Ejecutar Migración">
                 <input type="hidden" name="_csrf" value="<?= e($csrfToken) ?>">
                 <button type="submit" class="btn btn-vs-primary px-4 py-2 shadow-sm">
                     <i class="bi bi-rocket-takeoff-fill me-1"></i> Ejecutar Migración Completa Ahora
@@ -52,7 +52,7 @@ declare(strict_types=1);
 
     <?php if (!empty($migrationResult['steps'])): ?>
         <div class="alert alert-success border-0 mb-4">
-            <h6 class="fw-bold mb-2"><i class="bi bi-check2-all"></i> Resultado de Ejecución Smart-DB</h6>
+            <h6 class="fw-bold mb-2"><i class="bi bi-check2-all"></i> Resultado de Ejecución</h6>
             <ul class="small mb-2">
                 <?php foreach ($migrationResult['steps'] as $st): ?>
                     <li><strong><?= e($st['step']) ?>:</strong> <?= e($st['message']) ?></li>

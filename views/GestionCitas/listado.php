@@ -15,7 +15,7 @@ $puedeAtender = in_array($rol, ['Médico', 'Administrador'], true);
 <div class="vs-card">
     <div class="vs-card-header">
         <div>
-            <h6 class="mb-0 fw-bold" style="color:var(--vs-navy);"><i class="bi bi-journal-medical me-1"></i> <?= $rol === 'Paciente' ? 'Mis Citas Reservadas y Comprobantes QR' : 'Gestión Integral de Citas Médicas (CU09, CU10, CU11, CU15)' ?></h6>
+            <h6 class="mb-0 fw-bold" style="color:var(--vs-navy);"><i class="bi bi-journal-medical me-1"></i> <?= $rol === 'Paciente' ? 'Mis Citas Reservadas y Comprobantes QR' : 'Control y Seguimiento de Citas Médicas' ?></h6>
             <small class="text-muted">Reprogramación libre de colisiones, cancelación documentada y descarga de Ticket PDF con Código QR</small>
         </div>
         <?php if ($puedeAgendar): ?>
@@ -111,9 +111,8 @@ $puedeAtender = in_array($rol, ['Médico', 'Administrador'], true);
                         </td>
                         <td data-label="Acciones" class="text-end">
                             <div class="d-inline-flex flex-wrap gap-1 justify-content-end">
-                                <!-- CU15: Ticket PDF con Código QR -->
                                 <a href="<?= url('exportar/comprobante', ['id_cita' => $c['id_cita']]) ?>" target="_blank"
-                                   class="btn btn-sm btn-vs-secondary" title="Descargar Comprobante PDF con Código QR (CU15)">
+                                   class="btn btn-sm btn-vs-secondary" title="Descargar Comprobante PDF con Código QR">
                                     <i class="bi bi-qr-code"></i> PDF
                                 </a>
 
@@ -124,7 +123,7 @@ $puedeAtender = in_array($rol, ['Médico', 'Administrador'], true);
                                             <input type="hidden" name="id_cita" value="<?= (int) $c['id_cita'] ?>">
                                             <input type="hidden" name="nuevo_estado" value="Confirmada">
                                             <input type="hidden" name="return_to" value="citas">
-                                            <button type="submit" class="btn btn-sm btn-warning" title="Confirmar presencia en sala (CU11)">
+                                            <button type="submit" class="btn btn-sm btn-warning" title="Confirmar presencia en sala">
                                                 <i class="bi bi-person-check-fill"></i>
                                             </button>
                                         </form>
@@ -135,7 +134,7 @@ $puedeAtender = in_array($rol, ['Médico', 'Administrador'], true);
                                         <input type="hidden" name="id_cita" value="<?= (int) $c['id_cita'] ?>">
                                         <input type="hidden" name="nuevo_estado" value="Inasistencia">
                                         <input type="hidden" name="return_to" value="citas">
-                                        <button type="submit" class="btn btn-sm btn-outline-secondary" title="Marcar Inasistencia (CU11)">
+                                        <button type="submit" class="btn btn-sm btn-outline-secondary" title="Marcar Inasistencia">
                                             <i class="bi bi-person-x"></i>
                                         </button>
                                     </form>
@@ -144,7 +143,7 @@ $puedeAtender = in_array($rol, ['Médico', 'Administrador'], true);
                                 <?php if ($esActiva && $puedeAtender && ($rol === 'Administrador' || (int) $c['id_medico'] === (int) ($currentUser['id_medico'] ?? 0))): ?>
                                     <button type="button" class="btn btn-sm btn-success"
                                             onclick='abrirModalConsultorio(<?= json_encode($c, JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE) ?>, "citas")'
-                                            title="Atender consulta médica (CU11)">
+                                            title="Atender consulta médica">
                                         <i class="bi bi-clipboard2-pulse-fill"></i> Atender
                                     </button>
                                 <?php endif; ?>
@@ -152,12 +151,12 @@ $puedeAtender = in_array($rol, ['Médico', 'Administrador'], true);
                                 <?php if ($esActiva && $puedeAgendar): ?>
                                     <button type="button" class="btn btn-sm btn-outline-primary"
                                             onclick='abrirModalReprogramar(<?= json_encode($c, JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE) ?>, "citas")'
-                                            title="Reprogramar fecha/hora (CU09)">
+                                            title="Reprogramar fecha/hora">
                                         <i class="bi bi-calendar2-range"></i>
                                     </button>
                                     <button type="button" class="btn btn-sm btn-outline-danger"
                                             onclick='abrirModalCancelar(<?= (int) $c["id_cita"] ?>, <?= json_encode($c["codigo_cita"]) ?>, "citas")'
-                                            title="Cancelar cita con motivo (CU10)">
+                                            title="Cancelar cita con motivo">
                                         <i class="bi bi-x-circle"></i>
                                     </button>
                                 <?php endif; ?>
@@ -170,7 +169,7 @@ $puedeAtender = in_array($rol, ['Médico', 'Administrador'], true);
     </div>
 </div>
 
-<!-- MODAL REPROGRAMAR CITA (CU09 · sp_reprogramar_cita + fn_obtener_intervalos_disponibles) -->
+<!-- MODAL REPROGRAMAR CITA -->
 <div class="modal fade" id="modalReprogramarCita" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered">
         <form method="POST" action="<?= url('citas/reprogramar') ?>" class="modal-content" id="formReprogramar">
@@ -179,7 +178,7 @@ $puedeAtender = in_array($rol, ['Médico', 'Administrador'], true);
             <input type="hidden" name="nueva_hora_inicio" id="rep_nueva_hora">
             <input type="hidden" name="return_to" id="rep_return_to" value="citas">
             <div class="modal-header text-white" style="background:var(--vs-navy);">
-                <h5 class="modal-title fs-6 fw-bold"><i class="bi bi-calendar2-range me-1"></i> Reprogramar Cita Médica (CU09 · sp_reprogramar_cita)</h5>
+                <h5 class="modal-title fs-6 fw-bold"><i class="bi bi-calendar2-range me-1"></i> Reprogramar Cita Médica</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
@@ -203,7 +202,7 @@ $puedeAtender = in_array($rol, ['Médico', 'Administrador'], true);
     </div>
 </div>
 
-<!-- MODAL CANCELAR CITA (CU10 · sp_cancelar_cita) -->
+<!-- MODAL CANCELAR CITA -->
 <div class="modal fade" id="modalCancelarCita" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <form method="POST" action="<?= url('citas/cancelar') ?>" class="modal-content needs-validation" novalidate>
@@ -211,12 +210,12 @@ $puedeAtender = in_array($rol, ['Médico', 'Administrador'], true);
             <input type="hidden" name="id_cita" id="canc_id_cita">
             <input type="hidden" name="return_to" id="canc_return_to" value="citas">
             <div class="modal-header bg-danger text-white">
-                <h5 class="modal-title fs-6 fw-bold"><i class="bi bi-x-octagon-fill me-1"></i> Cancelar Cita Médica <span id="cancCodigoLbl"></span> (CU10)</h5>
+                <h5 class="modal-title fs-6 fw-bold"><i class="bi bi-x-octagon-fill me-1"></i> Cancelar Cita Médica <span id="cancCodigoLbl"></span></h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
                 <p class="small text-muted">
-                    De acuerdo con <strong>RN09 y RN11</strong>, la cita no se elimina físicamente: se documenta la causa en <code>cancelaciones_cita</code>, se audita el evento <code>CANCEL</code> y se libera inmediatamente el horario del médico.
+                    Al cancelar la cita se registrará el motivo en el historial clínico y se liberará de inmediato el horario del médico para otros pacientes.
                 </p>
                 <div class="mb-0">
                     <label class="form-label small fw-semibold">Motivo Obligatorio de Cancelación (mínimo 5 caracteres) *</label>
@@ -233,7 +232,7 @@ $puedeAtender = in_array($rol, ['Médico', 'Administrador'], true);
     </div>
 </div>
 
-<!-- MODAL ATENCIÓN EN CONSULTORIO MÉDICO (CU11 · sp_registrar_atencion_medica) -->
+<!-- MODAL ATENCIÓN EN CONSULTORIO MÉDICO -->
 <div class="modal fade" id="modalConsultorio" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered">
         <form method="POST" action="<?= url('citas/atender') ?>" class="modal-content needs-validation" novalidate>
@@ -241,7 +240,7 @@ $puedeAtender = in_array($rol, ['Médico', 'Administrador'], true);
             <input type="hidden" name="id_cita" id="at_id_cita">
             <input type="hidden" name="return_to" id="at_return_to" value="citas">
             <div class="modal-header text-white" style="background:#198754;">
-                <h5 class="modal-title fs-6 fw-bold"><i class="bi bi-clipboard2-pulse-fill me-1"></i> Atención Médica en Consultorio (CU11 · sp_registrar_atencion_medica)</h5>
+                <h5 class="modal-title fs-6 fw-bold"><i class="bi bi-clipboard2-pulse-fill me-1"></i> Atención Médica en Consultorio</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
@@ -257,11 +256,11 @@ $puedeAtender = in_array($rol, ['Médico', 'Administrador'], true);
                 <div class="mb-2 small text-muted"><strong>Motivo de consulta registrado:</strong> <span id="atMotivoConsulta"></span></div>
 
                 <div class="mb-0">
-                    <label class="form-label small fw-semibold">Diagnóstico Clínico, Evolución e Indicaciones Terapéuticas (<code>notas_medicas</code>) *</label>
+                    <label class="form-label small fw-semibold">Diagnóstico Clínico, Evolución e Indicaciones Terapéuticas *</label>
                     <textarea name="notas_medicas" class="form-control" rows="4" required minlength="5"
-                              placeholder="Registre hallazgos del examen físico, diagnóstico CIE/clínico y tratamiento indicado..."></textarea>
+                              placeholder="Registre hallazgos del examen físico, diagnóstico clínico y tratamiento indicado..."></textarea>
                     <div class="form-text text-muted">
-                        <i class="bi bi-lock-fill"></i> Al sellar la consulta como <strong>Atendida</strong>, el registro quedará protegido de forma irreversible (RN10).
+                        <i class="bi bi-lock-fill"></i> Al sellar la consulta como <strong>Atendida</strong>, el registro quedará guardado de forma permanente en el expediente clínico.
                     </div>
                 </div>
             </div>

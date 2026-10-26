@@ -113,7 +113,7 @@ $defaultDate = (date('N') === '7') ? date('Y-m-d', strtotime('+1 day')) : ((date
                             <span class="badge rounded-circle p-2" style="background:var(--vs-navy);width:28px;height:28px;">3</span>
                             <div>
                                 <h6 class="mb-0 fw-bold" style="color:var(--vs-navy);">Fecha y Bloques de 30 Minutos Disponibles</h6>
-                                <small class="text-muted">Consultado en vivo desde <code>fn_obtener_intervalos_disponibles(:id_medico, :fecha)</code></small>
+                                <small class="text-muted">Seleccione una fecha para ver los horarios disponibles del médico</small>
                             </div>
                         </div>
                     </div>
@@ -265,7 +265,7 @@ async function cargarIntervalosDisponibles() {
         return;
     }
 
-    cont.innerHTML = '<div class="text-center py-5 text-muted"><div class="spinner-border spinner-border-sm text-primary me-2"></div> Consultando disponibilidad en PostgreSQL...</div>';
+    cont.innerHTML = '<div class="text-center py-5 text-muted"><div class="spinner-border spinner-border-sm text-primary me-2"></div> Consultando disponibilidad de horarios...</div>';
 
     try {
         const r = await fetch(URL_SLOTS_AJAX + '&id_medico=' + encodeURIComponent(idMedico) + '&fecha=' + encodeURIComponent(fecha), {
@@ -338,7 +338,7 @@ document.getElementById('formProgramarCita')?.addEventListener('submit', async f
     const btn = document.getElementById('btnConfirmarCita');
     btn.disabled = true;
     const prevHtml = btn.innerHTML;
-    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Procesando en PostgreSQL...';
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Procesando solicitud...';
 
     try {
         const fd = new FormData(this);
@@ -370,7 +370,7 @@ document.getElementById('formProgramarCita')?.addEventListener('submit', async f
                 window.location.href = '<?= url('citas') ?>&q=' + encodeURIComponent(res.codigo_cita);
             }
         } else {
-            VidaSalud.alert('error', 'Operación Rechazada por PostgreSQL', res.message || 'No fue posible agendar la cita.');
+            VidaSalud.alert('error', 'No se pudo programar la cita', res.message || 'No fue posible agendar la cita.');
             cargarIntervalosDisponibles();
         }
     } catch (e) {
