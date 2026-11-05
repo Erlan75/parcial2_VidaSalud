@@ -45,6 +45,7 @@ final class Router
             'sistema/migracion',
             'sistema/guardar-config',
             'sistema/ejecutar-migracion',
+            'asistente-ia/consultar',
         ];
 
         // Si no hay ruta explícita, enviar según sesión

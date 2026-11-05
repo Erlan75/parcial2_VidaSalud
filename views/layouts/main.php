@@ -407,7 +407,8 @@ $activeMenu = $activeMenu ?? 'dashboard';
     window.APP_BASE_URL = <?= json_encode(BASE_URL) ?>;
     window.CSRF_TOKEN = <?= json_encode($csrfToken) ?>;
     window.VS_FLASHES = <?= json_encode($flashes, JSON_UNESCAPED_UNICODE) ?>;
-    window.VS_AI_ENDPOINT = <?= json_encode(url('asistente-ia/consultar')) ?>;
+    window.VS_AI_ENDPOINT = <?= json_encode(BASE_URL . '/api_asistente.php') ?>;
+    window.VS_AI_FALLBACK_ENDPOINT = <?= json_encode(url('asistente-ia/consultar')) ?>;
 </script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -568,19 +569,31 @@ $activeMenu = $activeMenu ?? 'dashboard';
             fd.append('pregunta', q);
             fd.append('_csrf', window.CSRF_TOKEN || '');
 
-            const resp = await fetch(window.VS_AI_ENDPOINT, {
-                method: 'POST',
-                body: fd,
-                headers: { 'X-Requested-With': 'XMLHttpRequest' }
-            });
-            const data = await resp.json();
+            let data = null;
+            try {
+                const resp = await fetch(window.VS_AI_ENDPOINT, {
+                    method: 'POST',
+                    body: fd,
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                });
+                const rawText = await resp.text();
+                data = JSON.parse(rawText);
+            } catch (primaryErr) {
+                const respFallback = await fetch(window.VS_AI_FALLBACK_ENDPOINT, {
+                    method: 'POST',
+                    body: fd,
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                });
+                const fallbackText = await respFallback.text();
+                data = JSON.parse(fallbackText);
+            }
 
-            const answerText = data.answer || data.message || 'No pude procesar la respuesta.';
+            const answerText = (data && (data.answer || data.message)) ? (data.answer || data.message) : 'No pude procesar la respuesta.';
             loadingBubble.innerHTML = formatMarkdownToHtml(answerText);
             chatHistory.scrollTop = chatHistory.scrollHeight;
-            voiceStatus.textContent = data.engine || 'Consultas en vivo por voz en español';
+            voiceStatus.textContent = (data && data.engine) ? data.engine : 'Consultas en vivo por voz en español';
 
-            speakInSpanish(data.speech_text || answerText);
+            speakInSpanish((data && data.speech_text) ? data.speech_text : answerText);
         } catch (err) {
             loadingBubble.innerHTML = 'Ocurrió un error de conexión al consultar el asistente.';
             voiceStatus.textContent = 'Error de conexión';

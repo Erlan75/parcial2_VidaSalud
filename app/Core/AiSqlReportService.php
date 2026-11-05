@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace App\Core;
 
+use Database;
 use PDO;
 use Throwable;
 
@@ -38,21 +39,27 @@ final class AiSqlReportService
                 'answer'       => $msg,
                 'speech_text'  => $msg,
                 'intent'       => 'empty',
-                'engine'       => 'Local',
+                'engine'       => 'Motor Analítico Clínico PostgreSQL (Tiempo Real)',
                 'sql_used'     => '',
                 'data_preview' => [],
             ];
         }
 
-        $pdo = Database::connection();
+        $pdo = Database::getConnection();
 
-        // 1. Intentar primero con Gemini API si existe clave configurada
+        // 1. Si es un saludo corto ("hola", "buenos días", "ayuda"), responder de inmediato con datos en vivo
+        $norm = self::normalize($question);
+        if (preg_match('/^(hola|buenos dias|buenas tardes|buenas noches|buen dia|que tal|saludos|hey|ayuda|que puedes hacer|quien eres)[\s!?.]*$/', $norm)) {
+            return self::resolveGreeting($question, $pdo);
+        }
+
+        // 2. Intentar primero con Gemini API si existe clave configurada
         $geminiResult = self::tryGeminiConversational($question, $pdo);
         if ($geminiResult !== null) {
             return $geminiResult;
         }
 
-        // 2. Motor Analítico Local Comprensivo en Vivo sobre las 13 tablas PostgreSQL
+        // 3. Motor Analítico Local Comprensivo en Vivo sobre las 13 tablas PostgreSQL
         return self::resolveQuestionLocally($question, $pdo);
     }
 
@@ -77,12 +84,37 @@ final class AiSqlReportService
     }
 
     /**
+     * Respuesta cálida e informativa cuando el usuario saluda ("hola", "buenos días", etc.).
+     */
+    private static function resolveGreeting(string $question, PDO $pdo): array
+    {
+        $sql = "SELECT
+                    (SELECT COUNT(*) FROM citas) AS total_citas,
+                    (SELECT COUNT(*) FROM pacientes WHERE estado = 'Activo') AS pacientes_activos,
+                    (SELECT COUNT(*) FROM medicos WHERE estado = 'Activo') AS medicos_activos,
+                    (SELECT COUNT(*) FROM especialidades WHERE estado = 'Activo') AS especialidades_activas";
+        $row = $pdo->query($sql)->fetch(PDO::FETCH_ASSOC) ?: [];
+
+        $answer = "¡Hola! Soy el **Asistente Clínico Inteligente de la Clínica Vida Salud**.\n"
+                . "Estoy conectado en tiempo real a la base de datos (**{$row['pacientes_activos']} pacientes**, **{$row['medicos_activos']} médicos**, **{$row['especialidades_activas']} especialidades** y **{$row['total_citas']} citas**).\n\n"
+                . "Puedes preguntarme por voz o texto, por ejemplo:\n"
+                . "• *«¿Cuántas citas canceladas hay?»*\n"
+                . "• *«¿Cuántos roles tenemos?»* o *«¿Quiénes son los administradores?»*\n"
+                . "• *«¿Qué médicos atienden en pediatría?»*\n"
+                . "• *«¿Qué pacientes tienen alergias?»*";
+
+        $speech = "¡Hola! Soy el Asistente Clínico Inteligente de la Clínica Vida Salud. Estoy conectado en tiempo real con los datos de nuestros {$row['pacientes_activos']} pacientes, {$row['medicos_activos']} médicos y {$row['total_citas']} citas médicas. ¿Qué deseas consultar hoy?";
+
+        return self::buildResult($question, $answer, $speech, 'saludo_asistente', $sql, [$row]);
+    }
+
+    /**
      * Intenta resolver la pregunta usando Google Gemini API (soporta API Key AIza... y tokens AQ... / Bearer).
      */
     private static function tryGeminiConversational(string $question, PDO $pdo): ?array
     {
-        $apiKey = trim((string) Config::get('GEMINI_API_KEY', ''));
-        $model  = trim((string) Config::get('GEMINI_MODEL', 'gemini-2.0-flash'));
+        $apiKey = trim((string) env('GEMINI_API_KEY', ''));
+        $model  = trim((string) env('GEMINI_MODEL', 'gemini-2.0-flash'));
 
         if ($apiKey === '' || !function_exists('curl_init')) {
             return null;
@@ -196,8 +228,8 @@ PROMPT;
             CURLOPT_POST           => true,
             CURLOPT_HTTPHEADER     => ['Content-Type: application/json'],
             CURLOPT_POSTFIELDS     => $jsonBody,
-            CURLOPT_TIMEOUT        => 7,
-            CURLOPT_CONNECTTIMEOUT => 4,
+            CURLOPT_TIMEOUT        => 5,
+            CURLOPT_CONNECTTIMEOUT => 3,
             CURLOPT_SSL_VERIFYPEER => false,
         ]);
         $res  = curl_exec($ch);
@@ -221,8 +253,8 @@ PROMPT;
                         'x-goog-api-key: ' . $apiKey,
                     ],
                     CURLOPT_POSTFIELDS     => $jsonBody,
-                    CURLOPT_TIMEOUT        => 6,
-                    CURLOPT_CONNECTTIMEOUT => 4,
+                    CURLOPT_TIMEOUT        => 5,
+                    CURLOPT_CONNECTTIMEOUT => 3,
                     CURLOPT_SSL_VERIFYPEER => false,
                 ]);
                 $res2  = curl_exec($ch2);
@@ -846,8 +878,8 @@ PROMPT;
             $where[] = 'c.estado IN (' . implode(', ', $quoted) . ')';
         }
 
-        // Si no filtró por médico, paciente, especialidad ni fecha y pregunta cuántas citas están en cada estado o cuántas citas hay
-        if ($medicoMatch === null && $pacienteMatch === null && $espMatch === null && $fechaLabel === '' && empty($estados)) {
+        // Si menciona varios estados (ej. "atendidas, programadas o canceladas") o no filtró por ninguno en específico, dar desglose global por estado
+        if ($medicoMatch === null && $pacienteMatch === null && $espMatch === null && $fechaLabel === '' && (empty($estados) || count($estados) >= 2)) {
             $sql = "SELECT estado, COUNT(*) AS total
                     FROM citas
                     GROUP BY estado
@@ -919,9 +951,9 @@ PROMPT;
             $itemsVoz[] = "cita {$r['codigo_cita']} el {$r['fecha']} a las {$r['hora']} del paciente {$r['paciente']} con el doctor {$r['medico']} en estado {$r['estado']}";
         }
 
-        $answer = "Se encontraron **{$count} citas médicas** {$ctxStr}:\n" . implode("\n", $itemsMd);
-        $speech = "Se encontraron {$count} citas médicas " . str_replace('**', '', $ctxStr) . ". "
-                . ($count <= 3 ? "Detalle: " . implode('; ', $itemsVoz) . "." : "Las más recientes son: " . implode('; ', array_slice($itemsVoz, 0, 2)) . ".");
+        $answer = "Hay **{$count} citas médicas** {$ctxStr}:\n" . implode("\n", $itemsMd);
+        $speech = "Tenemos {$count} citas médicas " . str_replace('**', '', $ctxStr) . ". "
+                . ($count <= 3 ? "Detalle: " . implode('; ', $itemsVoz) . "." : "Las más recientes son: " . implode('; ', array_slice($itemsVoz, 0, 3)) . ".");
 
         return self::buildResult($question, $answer, $speech, 'citas_filtradas', $sql, $rows);
     }
@@ -984,7 +1016,7 @@ PROMPT;
                 . "• **Padrón Clínico:** {$row['pacientes_activos']} pacientes activos con {$row['total_fichas']} fichas médicas y contactos de emergencia.\n"
                 . "• **Citas Médicas ({$row['total_citas']} totales):** {$row['citas_atendidas']} atendidas, {$row['citas_pendientes']} pendientes (programadas/confirmadas), {$row['citas_canceladas']} canceladas y {$row['citas_inasistencia']} inasistencias.";
 
-        $speech = "Resumen actual de la Clínica Vida Salud: contamos con {$row['usuarios_activos']} usuarios en {$row['total_roles']} roles, {$row['medicos_activos']} médicos especialistas en {$row['especialidades_activas']} especialidades, {$row['pacientes_activos']} pacientes registrados con ficha médica, y {$row['total_citas']} citas médicas de las cuales {$row['citas_atendidas']} fueron atendidas y {$row['citas_pendientes']} están pendientes.";
+        $speech = "Resumen actual de la Clínica Vida Salud: contamos con {$row['usuarios_activos']} usuarios en {$row['total_roles']} roles, {$row['medicos_activos']} médicos especialistas en {$row['especialidades_activas']} especialidades, {$row['pacientes_activos']} pacientes registrados con ficha médica, y {$row['total_citas']} citas médicas de las cuales {$row['citas_atendidas']} fueron atendidas, {$row['citas_pendientes']} están pendientes y {$row['citas_canceladas']} fueron canceladas.";
 
         return self::buildResult($question, $answer, $speech, 'resumen_ejecutivo_clinica', $sql, [$row]);
     }

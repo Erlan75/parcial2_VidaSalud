@@ -4,7 +4,6 @@ declare(strict_types=1);
 namespace App\Modules\ReportesAnalitica\Controllers;
 
 use App\Core\AiSqlReportService;
-use App\Core\Auth;
 use App\Core\Controller;
 use Throwable;
 
@@ -15,29 +14,48 @@ final class AsistenteIaController extends Controller
 {
     public function consultar(): void
     {
-        Auth::requireLogin();
+        while (ob_get_level()) {
+            ob_end_clean();
+        }
 
-        $rawBody = file_get_contents('php://input');
-        $jsonBody = is_string($rawBody) && $rawBody !== '' ? json_decode($rawBody, true) : null;
+        header('Content-Type: application/json; charset=utf-8');
+        header('Access-Control-Allow-Origin: *');
+        header('Access-Control-Allow-Methods: POST, GET, OPTIONS');
+        header('Access-Control-Allow-Headers: Content-Type, X-Requested-With');
+
+        if (strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'OPTIONS') {
+            http_response_code(200);
+            echo json_encode(['ok' => true], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+
+        $rawBody  = file_get_contents('php://input');
+        $jsonBody = is_string($rawBody) && trim($rawBody) !== '' ? json_decode($rawBody, true) : null;
 
         $question = trim((string) (
             $_POST['pregunta']
             ?? $_POST['prompt']
-            ?? ($jsonBody['pregunta'] ?? $jsonBody['prompt'] ?? '')
+            ?? $_POST['q']
+            ?? ($jsonBody['pregunta'] ?? $jsonBody['prompt'] ?? $jsonBody['q'] ?? '')
+            ?? $_GET['pregunta']
+            ?? $_GET['q']
+            ?? ''
         ));
 
         if ($question === '') {
-            $this->json([
+            $msg = 'Por favor, dime o escribe tu consulta sobre la Clínica Vida Salud.';
+            echo json_encode([
                 'ok'          => false,
-                'message'     => 'Por favor, habla o escribe una pregunta sobre la clínica.',
-                'answer'      => 'Por favor, dime o escribe tu consulta sobre la Clínica Vida Salud.',
-                'speech_text' => 'Por favor, dime o escribe tu consulta sobre la Clínica Vida Salud.',
-            ], 422);
+                'message'     => $msg,
+                'answer'      => $msg,
+                'speech_text' => $msg,
+            ], JSON_UNESCAPED_UNICODE);
+            exit;
         }
 
         try {
             $result = AiSqlReportService::answerClinicalQuestion($question);
-            $this->json([
+            echo json_encode([
                 'ok'           => $result['ok'],
                 'question'     => $result['question'],
                 'answer'       => $result['answer'],
@@ -46,15 +64,18 @@ final class AsistenteIaController extends Controller
                 'engine'       => $result['engine'],
                 'sql_used'     => $result['sql_used'],
                 'data_preview' => $result['data_preview'],
-            ]);
+            ], JSON_UNESCAPED_UNICODE);
+            exit;
         } catch (Throwable $e) {
+            http_response_code(200);
             $fallback = 'Ocurrió un inconveniente al consultar la base de datos: ' . $e->getMessage();
-            $this->json([
+            echo json_encode([
                 'ok'          => false,
                 'message'     => $fallback,
                 'answer'      => $fallback,
                 'speech_text' => 'Ocurrió un inconveniente al consultar la base de datos.',
-            ], 500);
+            ], JSON_UNESCAPED_UNICODE);
+            exit;
         }
     }
 }
