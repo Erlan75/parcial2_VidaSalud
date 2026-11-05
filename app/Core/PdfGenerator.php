@@ -304,8 +304,8 @@ final class PdfGenerator
         }
         unset($col);
 
-        $rowsPerPageFirst = !empty($summaryStats) ? ($orientation === 'L' ? 16 : 24) : ($orientation === 'L' ? 19 : 28);
-        $rowsPerPageNext  = ($orientation === 'L') ? 21 : 31;
+        $rowsPerPageFirst = !empty($summaryStats) ? ($orientation === 'L' ? 14 : 22) : ($orientation === 'L' ? 17 : 26);
+        $rowsPerPageNext  = ($orientation === 'L') ? 19 : 29;
 
         $chunks = [];
         if (empty($rows)) {
@@ -319,23 +319,26 @@ final class PdfGenerator
         }
 
         $totalPages = count($chunks);
+        $emittedAt = date('d/m/Y H:i:s');
+        $totalsRow = ExcelGenerator::computeTotalsRow($columns, $rows);
 
         foreach ($chunks as $pageIdx => $pageRows) {
             $pdf->addPage();
 
-            // Encabezado Institucional
-            $pdf->rect(0, 0, $w, 68, '#002D62');
-            $pdf->rect(0, 68, $w, 4, '#2B579A');
+            // Encabezado Institucional con Título Exacto, Filtros Aplicados, Fecha de Emisión y Usuario Emisor
+            $pdf->rect(0, 0, $w, 76, '#002D62');
+            $pdf->rect(0, 76, $w, 4, '#2B579A');
 
             $pdf->rect($marginX, 16, 30, 30, '#FFFFFF');
             $pdf->rect($marginX + 12, 21, 6, 20, '#002D62');
             $pdf->rect($marginX + 7, 28, 16, 6, '#002D62');
 
-            $pdf->text($marginX + 40, 31, 'CLÍNICA VIDA SALUD · REPORTE EJECUTIVO DE GESTIÓN', 13, 'B', '#FFFFFF');
-            $pdf->text($marginX + 40, 47, $pdf->truncateText($title, 95), 10.5, 'B', '#D4E6F7');
-            $pdf->text($marginX + 40, 60, $pdf->truncateText($subtitle, 115), 8.2, 'R', '#E2E8F0');
+            $pdf->text($marginX + 40, 26, 'CLÍNICA VIDA SALUD · REPORTE EJECUTIVO DE GESTIÓN', 12.5, 'B', '#FFFFFF');
+            $pdf->text($marginX + 40, 42, $pdf->truncateText($title, 100), 10.5, 'B', '#D4E6F7');
+            $pdf->text($marginX + 40, 55, 'Filtros: ' . $pdf->truncateText($subtitle, 110), 8.0, 'R', '#E2E8F0');
+            $pdf->text($marginX + 40, 68, 'Emisión: ' . $emittedAt . ' (Bolivia)   |   Usuario Emisor: ' . $pdf->truncateText($generatedBy, 55) . '   |   Total: ' . count($rows) . ' reg.', 7.8, 'B', '#FFFFFF');
 
-            $cursorY = 86.0;
+            $cursorY = 92.0;
 
             // Tarjetas KPI en la primera página
             if ($pageIdx === 0 && !empty($summaryStats)) {
@@ -345,12 +348,12 @@ final class PdfGenerator
                 $i = 0;
                 foreach ($summaryStats as $label => $val) {
                     $cx = $marginX + ($i * ($cardW + $gap));
-                    $pdf->rect($cx, $cursorY, $cardW, 40, '#F4F7FA', '#D4E6F7', 0.8);
-                    $pdf->text($cx + 10, $cursorY + 15, strtoupper($pdf->truncateText((string) $label, 28)), 7.5, 'B', '#2B579A');
-                    $pdf->text($cx + 10, $cursorY + 32, (string) $val, 12, 'B', '#002D62');
+                    $pdf->rect($cx, $cursorY, $cardW, 38, '#F4F7FA', '#D4E6F7', 0.8);
+                    $pdf->text($cx + 10, $cursorY + 14, strtoupper($pdf->truncateText((string) $label, 28)), 7.5, 'B', '#2B579A');
+                    $pdf->text($cx + 10, $cursorY + 30, (string) $val, 11.5, 'B', '#002D62');
                     $i++;
                 }
-                $cursorY += 52.0;
+                $cursorY += 48.0;
             }
 
             // Cabecera de Tabla
@@ -366,6 +369,7 @@ final class PdfGenerator
             if (empty($pageRows)) {
                 $pdf->rect($marginX, $cursorY, $usableW, 28, '#F8FAFC', '#E2E8F0', 0.5);
                 $pdf->text($marginX + 12, $cursorY + 18, 'No se encontraron registros para los criterios de filtrado seleccionados.', 9, 'I', '#64748B');
+                $cursorY += 28.0;
             } else {
                 foreach ($pageRows as $rIdx => $row) {
                     $bg = ($rIdx % 2 === 0) ? '#FFFFFF' : '#F8FAFC';
@@ -381,10 +385,24 @@ final class PdfGenerator
                 }
             }
 
+            // Fila de Totales al pie de la tabla (en la última página)
+            if ($pageIdx === $totalPages - 1) {
+                $pdf->rect($marginX, $cursorY, $usableW, 21, '#D4E6F7', '#002D62', 0.8);
+                $colX = $marginX;
+                foreach ($columns as $col) {
+                    $k = (string) $col['key'];
+                    $tVal = (string) ($totalsRow[$k] ?? '');
+                    $maxChars = max(5, (int) floor($col['ptWidth'] / 4.9));
+                    $pdf->text($colX + 5, $cursorY + 14, $pdf->truncateText($tVal, $maxChars), 8.0, 'B', '#002D62');
+                    $colX += $col['ptWidth'];
+                }
+                $cursorY += 21.0;
+            }
+
             // Pie de página
             $footerY = $h - 24.0;
             $pdf->line($marginX, $footerY - 10, $w - $marginX, $footerY - 10, '#CBD5E1', 0.6);
-            $pdf->text($marginX, $footerY, 'Generado por: ' . $generatedBy . '  |  Fecha: ' . date('d/m/Y H:i:s') . '  |  Total registros: ' . count($rows), 7.8, 'R', '#64748B');
+            $pdf->text($marginX, $footerY, 'Emitido por: ' . $generatedBy . '  |  Fecha: ' . $emittedAt . '  |  Total registros consolidados: ' . count($rows), 7.8, 'R', '#64748B');
             $pageNumText = sprintf('Página %d de %d', $pageIdx + 1, $totalPages);
             $pdf->text($w - $marginX - 70, $footerY, $pageNumText, 8.0, 'B', '#002D62');
         }

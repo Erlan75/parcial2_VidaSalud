@@ -8,6 +8,10 @@ use PDO;
 
 /**
  * Modelo Analítico y de Reportes Ejecutivos del Paquete ReportesAnalitica (CU14, CU15)
+ * Soporta los 3 Tipos de Generación de Reportes:
+ *   - Tipo 1: Filtrado Parametrizado Combinado
+ *   - Tipo 2: Selección Visual e Interactiva (Tarjetas, Chips, Columnas y Filas)
+ *   - Tipo 3: Asistente Analítico por Voz con IA (Voice-to-SQL)
  */
 final class ReporteModel
 {
@@ -49,7 +53,9 @@ final class ReporteModel
                    (SELECT COUNT(*) FROM citas WHERE estado IN ('Programada', 'Confirmada') AND fecha_cita >= CURRENT_DATE) AS citas_futuras,
                    (SELECT COUNT(*) FROM citas WHERE estado = 'Atendida') AS citas_atendidas,
                    (SELECT COUNT(*) FROM citas WHERE estado = 'Cancelada') AS citas_canceladas,
-                   (SELECT COUNT(*) FROM citas WHERE estado = 'Inasistencia') AS citas_inasistencia
+                   (SELECT COUNT(*) FROM citas WHERE estado = 'Inasistencia') AS citas_inasistencia,
+                   (SELECT COUNT(*) FROM citas WHERE estado = 'Programada') AS citas_programadas,
+                   (SELECT COUNT(*) FROM citas WHERE estado = 'Confirmada') AS citas_confirmadas
         ";
         return $pdo->query($sql)->fetch(PDO::FETCH_ASSOC) ?: [];
     }
@@ -77,7 +83,8 @@ final class ReporteModel
         [$where, $params] = $this->buildCitaWhere($filters);
 
         $sql = "
-            SELECT e.nombre AS especialidad,
+            SELECT e.id_especialidad,
+                   e.nombre AS especialidad,
                    COUNT(c.id_cita)::int AS total
               FROM especialidades e
               LEFT JOIN citas c ON c.id_especialidad = e.id_especialidad AND ({$where})
@@ -90,18 +97,165 @@ final class ReporteModel
     }
 
     /**
-     * Construye cualquiera de los 6 reportes oficiales de gestión (CU14 / CU15)
+     * Construye cualquiera de los reportes oficiales parametrizados (Tipo 1)
      */
     public function generarReporte(string $tipoReporte, array $filters = []): array
     {
         return match ($tipoReporte) {
-            'citas_medico'         => $this->reporteProductividadMedico($filters),
-            'demanda_especialidad' => $this->reporteDemandaEspecialidad($filters),
-            'estados_ausentismo'   => $this->reporteEstadosYAusentismo($filters),
-            'padron_pacientes'     => $this->reportePadronPacientes($filters),
-            'agenda_imprimible'    => $this->reporteAgendaImprimible($filters),
-            default                => $this->reporteCitasPorFecha($filters),
+            'citas_medico'                                     => $this->reporteProductividadMedico($filters),
+            'demanda_especialidad', 'citas_especialidad'       => $this->reporteDemandaEspecialidad($filters),
+            'citas_estado'                                     => $this->reporteCitasPorEstado($filters),
+            'estados_ausentismo', 'asistencia_inasistencias'   => $this->reporteEstadosYAusentismo($filters),
+            'padron_pacientes'                                 => $this->reportePadronPacientes($filters),
+            'agenda_imprimible', 'agenda_diaria'               => $this->reporteAgendaImprimible($filters),
+            default                                            => $this->reporteCitasPorFecha($filters),
         };
+    }
+
+    /**
+     * Genera descripción legible de los filtros aplicados para cabeceras de PDF y Excel.
+     */
+    public function buildFiltersDescription(array $filters): string
+    {
+        $pdo = Database::getConnection();
+        $parts = [];
+
+        if (!empty($filters['fecha_desde'])) {
+            $parts[] = 'Desde: ' . $filters['fecha_desde'];
+        }
+        if (!empty($filters['fecha_hasta'])) {
+            $parts[] = 'Hasta: ' . $filters['fecha_hasta'];
+        }
+        if (!empty($filters['id_especialidad'])) {
+            $stmt = $pdo->prepare('SELECT nombre FROM especialidades WHERE id_especialidad = :id');
+            $stmt->execute([':id' => (int) $filters['id_especialidad']]);
+            $espNombre = $stmt->fetchColumn();
+            if ($espNombre) {
+                $parts[] = 'Especialidad: ' . $espNombre;
+            }
+        }
+        if (!empty($filters['id_medico'])) {
+            $stmt = $pdo->prepare("SELECT 'Dr(a). ' || nombres || ' ' || apellidos FROM medicos WHERE id_medico = :id");
+            $stmt->execute([':id' => (int) $filters['id_medico']]);
+            $medNombre = $stmt->fetchColumn();
+            if ($medNombre) {
+                $parts[] = 'Médico: ' . $medNombre;
+            }
+        }
+        if (!empty($filters['estado'])) {
+            $parts[] = 'Estado Cita: ' . $filters['estado'];
+        }
+        if (!empty($filters['estado_paciente'])) {
+            $parts[] = 'Estado Paciente: ' . $filters['estado_paciente'];
+        }
+
+        return empty($parts)
+            ? 'Histórico General Consolidado (Sin filtros restrictivos)'
+            : implode('  |  ', $parts);
+    }
+
+    /**
+     * Catálogo de columnas seleccionables para el Reporte TIPO 2 (Selección Interactiva por Interfaz)
+     */
+    public function getInteractiveColumnsCatalog(): array
+    {
+        return [
+            'codigo_cita'  => ['key' => 'codigo_cita',  'label' => 'Código',       'width' => 11],
+            'fecha_hora'   => ['key' => 'fecha_hora',   'label' => 'Fecha/Hora',   'width' => 16],
+            'paciente'     => ['key' => 'paciente',     'label' => 'Paciente',     'width' => 20],
+            'paciente_ci'  => ['key' => 'paciente_ci',  'label' => 'CI',           'width' => 10],
+            'medico'       => ['key' => 'medico',       'label' => 'Médico',       'width' => 18],
+            'especialidad' => ['key' => 'especialidad', 'label' => 'Especialidad', 'width' => 13],
+            'estado'       => ['key' => 'estado',       'label' => 'Estado',       'width' => 10],
+            'motivo'       => ['key' => 'motivo',       'label' => 'Motivo',       'width' => 16],
+        ];
+    }
+
+    /**
+     * Obtiene el dataset completo de citas para el constructor interactivo Tipo 2
+     * y para la exportación filtrada por filas/columnas seleccionadas.
+     */
+    public function getDatasetInteractivo(array $selectedIds = [], array $estados = [], array $especialidades = [], array $medicos = []): array
+    {
+        $pdo = Database::getConnection();
+        $where = ['1=1'];
+        $params = [];
+
+        if (!empty($selectedIds)) {
+            $cleanIds = array_values(array_filter(array_map('intval', $selectedIds), static fn($id) => $id > 0));
+            if (!empty($cleanIds)) {
+                $placeholders = [];
+                foreach ($cleanIds as $idx => $idVal) {
+                    $ph = ":id_{$idx}";
+                    $placeholders[] = $ph;
+                    $params[$ph] = $idVal;
+                }
+                $where[] = 'c.id_cita IN (' . implode(', ', $placeholders) . ')';
+            }
+        }
+
+        if (!empty($estados)) {
+            $cleanEst = array_values(array_filter(array_map('strval', $estados), static fn($s) => $s !== ''));
+            if (!empty($cleanEst)) {
+                $placeholders = [];
+                foreach ($cleanEst as $idx => $stVal) {
+                    $ph = ":est_{$idx}";
+                    $placeholders[] = $ph;
+                    $params[$ph] = $stVal;
+                }
+                $where[] = 'c.estado IN (' . implode(', ', $placeholders) . ')';
+            }
+        }
+
+        if (!empty($especialidades)) {
+            $cleanEsp = array_values(array_filter(array_map('intval', $especialidades), static fn($id) => $id > 0));
+            if (!empty($cleanEsp)) {
+                $placeholders = [];
+                foreach ($cleanEsp as $idx => $espId) {
+                    $ph = ":esp_{$idx}";
+                    $placeholders[] = $ph;
+                    $params[$ph] = $espId;
+                }
+                $where[] = 'c.id_especialidad IN (' . implode(', ', $placeholders) . ')';
+            }
+        }
+
+        if (!empty($medicos)) {
+            $cleanMed = array_values(array_filter(array_map('intval', $medicos), static fn($id) => $id > 0));
+            if (!empty($cleanMed)) {
+                $placeholders = [];
+                foreach ($cleanMed as $idx => $medId) {
+                    $ph = ":med_{$idx}";
+                    $placeholders[] = $ph;
+                    $params[$ph] = $medId;
+                }
+                $where[] = 'c.id_medico IN (' . implode(', ', $placeholders) . ')';
+            }
+        }
+
+        $sql = "
+            SELECT c.id_cita,
+                   c.codigo_cita,
+                   c.fecha_cita,
+                   TO_CHAR(c.fecha_cita, 'DD/MM/YYYY') || ' ' || TO_CHAR(c.hora_inicio, 'HH24:MI') || '-' || TO_CHAR(c.hora_fin, 'HH24:MI') AS fecha_hora,
+                   p.nombres || ' ' || p.apellidos AS paciente,
+                   p.ci AS paciente_ci,
+                   c.id_medico,
+                   'Dr(a). ' || m.nombres || ' ' || m.apellidos AS medico,
+                   c.id_especialidad,
+                   e.nombre AS especialidad,
+                   c.estado,
+                   COALESCE(c.motivo_consulta, '-') AS motivo
+              FROM citas c
+              JOIN pacientes p ON p.id_paciente = c.id_paciente
+              JOIN medicos m ON m.id_medico = c.id_medico
+              JOIN especialidades e ON e.id_especialidad = c.id_especialidad
+             WHERE " . implode(' AND ', $where) . "
+             ORDER BY c.fecha_cita DESC, c.hora_inicio ASC
+        ";
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute($params);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
     private function reporteCitasPorFecha(array $filters): array
@@ -130,7 +284,8 @@ final class ReporteModel
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         return [
-            'title'       => 'Reporte 1: Citas Médicas Programadas por Fecha',
+            'title'       => 'Reporte: Citas Médicas por Fecha',
+            'file_base'   => 'Citas_Por_Fecha',
             'orientation' => 'L',
             'columns'     => [
                 ['key' => 'codigo_cita',  'label' => 'Código',       'width' => 11],
@@ -150,6 +305,11 @@ final class ReporteModel
         $pdo = Database::getConnection();
         [$where, $params] = $this->buildCitaWhere($filters);
 
+        $medWhere = '1=1';
+        if (!empty($filters['id_medico'])) {
+            $medWhere = 'm.id_medico = :id_medico';
+        }
+
         $sql = "
             SELECT m.codigo_medico,
                    'Dr(a). ' || m.nombres || ' ' || m.apellidos AS medico,
@@ -166,6 +326,7 @@ final class ReporteModel
                    END AS tasa_atencion
               FROM medicos m
               LEFT JOIN citas c ON c.id_medico = m.id_medico AND ({$where})
+             WHERE {$medWhere}
              GROUP BY m.id_medico
              ORDER BY total_citas DESC, m.apellidos ASC
         ";
@@ -174,7 +335,8 @@ final class ReporteModel
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         return [
-            'title'       => 'Reporte 2: Productividad Clínica y Citas por Médico',
+            'title'       => 'Reporte: Productividad Clínica y Citas por Médico',
+            'file_base'   => 'Citas_Por_Medico',
             'orientation' => 'L',
             'columns'     => [
                 ['key' => 'codigo_medico',        'label' => 'Código',       'width' => 10],
@@ -195,6 +357,11 @@ final class ReporteModel
         $pdo = Database::getConnection();
         [$where, $params] = $this->buildCitaWhere($filters);
 
+        $espWhere = '1=1';
+        if (!empty($filters['id_especialidad'])) {
+            $espWhere = 'e.id_especialidad = :id_especialidad';
+        }
+
         $sql = "
             WITH base AS (
                 SELECT e.id_especialidad,
@@ -207,6 +374,7 @@ final class ReporteModel
                        COUNT(c.id_cita) FILTER (WHERE c.estado IN ('Cancelada', 'Inasistencia'))::int AS no_efectivas
                   FROM especialidades e
                   LEFT JOIN citas c ON c.id_especialidad = e.id_especialidad AND ({$where})
+                 WHERE {$espWhere}
                  GROUP BY e.id_especialidad
             )
             SELECT b.*,
@@ -223,7 +391,8 @@ final class ReporteModel
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         return [
-            'title'       => 'Reporte 3: Demanda de Citas por Especialidad Médica',
+            'title'       => 'Reporte: Citas por Especialidad Médica',
+            'file_base'   => 'Citas_Por_Especialidad',
             'orientation' => 'L',
             'columns'     => [
                 ['key' => 'codigo_especialidad', 'label' => 'Código',          'width' => 12],
@@ -233,6 +402,50 @@ final class ReporteModel
                 ['key' => 'atendidas',           'label' => 'Atendidas',       'width' => 12],
                 ['key' => 'activas',             'label' => 'Activas',         'width' => 12],
                 ['key' => 'participacion',       'label' => '% Demanda',       'width' => 14],
+            ],
+            'rows' => $rows,
+        ];
+    }
+
+    private function reporteCitasPorEstado(array $filters): array
+    {
+        $pdo = Database::getConnection();
+        [$where, $params] = $this->buildCitaWhere($filters);
+
+        $sql = "
+            SELECT c.estado,
+                   c.codigo_cita,
+                   TO_CHAR(c.fecha_cita, 'DD/MM/YYYY') AS fecha,
+                   TO_CHAR(c.hora_inicio, 'HH24:MI') || ' - ' || TO_CHAR(c.hora_fin, 'HH24:MI') AS horario,
+                   p.nombres || ' ' || p.apellidos AS paciente,
+                   p.ci AS paciente_ci,
+                   'Dr(a). ' || m.nombres || ' ' || m.apellidos AS medico,
+                   e.nombre AS especialidad,
+                   COALESCE(c.motivo_consulta, '-') AS motivo
+              FROM citas c
+              JOIN pacientes p ON p.id_paciente = c.id_paciente
+              JOIN medicos m ON m.id_medico = c.id_medico
+              JOIN especialidades e ON e.id_especialidad = c.id_especialidad
+             WHERE {$where}
+             ORDER BY c.estado ASC, c.fecha_cita DESC, c.hora_inicio ASC
+        ";
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute($params);
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        return [
+            'title'       => 'Reporte: Citas Médicas Clasificadas por Estado',
+            'file_base'   => 'Citas_Por_Estado',
+            'orientation' => 'L',
+            'columns'     => [
+                ['key' => 'estado',       'label' => 'Estado',       'width' => 11],
+                ['key' => 'codigo_cita',  'label' => 'Código',       'width' => 10],
+                ['key' => 'fecha',        'label' => 'Fecha',        'width' => 10],
+                ['key' => 'horario',      'label' => 'Horario',      'width' => 12],
+                ['key' => 'paciente',     'label' => 'Paciente',     'width' => 20],
+                ['key' => 'paciente_ci',  'label' => 'CI',           'width' => 9],
+                ['key' => 'medico',       'label' => 'Médico',       'width' => 16],
+                ['key' => 'especialidad', 'label' => 'Especialidad', 'width' => 12],
             ],
             'rows' => $rows,
         ];
@@ -273,7 +486,8 @@ final class ReporteModel
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         return [
-            'title'       => 'Reporte 4: Distribución por Estado y Tasa de Ausentismo',
+            'title'       => 'Reporte: Resumen de Asistencia e Inasistencias por Estado',
+            'file_base'   => 'Resumen_Asistencia_Inasistencias',
             'orientation' => 'P',
             'columns'     => [
                 ['key' => 'estado',         'label' => 'Estado Clínico',         'width' => 20],
@@ -289,11 +503,20 @@ final class ReporteModel
     {
         $pdo = Database::getConnection();
         $where = ['1=1'];
-        $params = [];
+        [$citaWhere, $params] = $this->buildCitaWhere($filters);
+
         if (!empty($filters['estado_paciente'])) {
             $where[] = 'p.estado = :ep';
             $params[':ep'] = (string) $filters['estado_paciente'];
         }
+
+        $hasCitaFilter = !empty($filters['fecha_desde'])
+            || !empty($filters['fecha_hasta'])
+            || !empty($filters['id_medico'])
+            || !empty($filters['id_especialidad'])
+            || !empty($filters['estado']);
+
+        $joinType = $hasCitaFilter ? 'JOIN' : 'LEFT JOIN';
 
         $sql = "
             SELECT p.codigo_paciente,
@@ -307,7 +530,7 @@ final class ReporteModel
                    COUNT(c.id_cita)::int AS total_citas
               FROM pacientes p
               LEFT JOIN fichas_medicas fm ON fm.id_paciente = p.id_paciente
-              LEFT JOIN citas c ON c.id_paciente = p.id_paciente
+              {$joinType} citas c ON c.id_paciente = p.id_paciente AND ({$citaWhere})
              WHERE " . implode(' AND ', $where) . "
              GROUP BY p.id_paciente, fm.tipo_sangre
              ORDER BY p.id_paciente ASC
@@ -317,7 +540,8 @@ final class ReporteModel
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         return [
-            'title'       => 'Reporte 5: Padrón General de Pacientes Registrados',
+            'title'       => 'Reporte: Padrón General de Pacientes Registrados',
+            'file_base'   => 'Padron_De_Pacientes',
             'orientation' => 'L',
             'columns'     => [
                 ['key' => 'codigo_paciente', 'label' => 'Código',      'width' => 12],
@@ -337,17 +561,16 @@ final class ReporteModel
     private function reporteAgendaImprimible(array $filters): array
     {
         $pdo = Database::getConnection();
-        $fecha = !empty($filters['fecha_desde']) ? (string) $filters['fecha_desde'] : '2026-10-26';
-        $where = ['c.fecha_cita = :fecha::date'];
-        $params = [':fecha' => $fecha];
-
-        if (!empty($filters['id_medico'])) {
-            $where[] = 'c.id_medico = :med';
-            $params[':med'] = (int) $filters['id_medico'];
+        $adjustedFilters = $filters;
+        if (empty($adjustedFilters['fecha_desde']) && empty($adjustedFilters['fecha_hasta'])) {
+            $adjustedFilters['fecha_desde'] = '2026-10-26';
+            $adjustedFilters['fecha_hasta'] = '2026-10-26';
         }
+        [$where, $params] = $this->buildCitaWhere($adjustedFilters);
 
         $sql = "
-            SELECT TO_CHAR(c.hora_inicio, 'HH24:MI') || ' - ' || TO_CHAR(c.hora_fin, 'HH24:MI') AS horario,
+            SELECT TO_CHAR(c.fecha_cita, 'DD/MM/YYYY') AS fecha,
+                   TO_CHAR(c.hora_inicio, 'HH24:MI') || ' - ' || TO_CHAR(c.hora_fin, 'HH24:MI') AS horario,
                    c.codigo_cita,
                    p.nombres || ' ' || p.apellidos AS paciente,
                    p.ci AS paciente_ci,
@@ -361,25 +584,30 @@ final class ReporteModel
               LEFT JOIN fichas_medicas fm ON fm.id_paciente = p.id_paciente
               JOIN medicos m ON m.id_medico = c.id_medico
               JOIN especialidades e ON e.id_especialidad = c.id_especialidad
-             WHERE " . implode(' AND ', $where) . "
-             ORDER BY m.apellidos ASC, c.hora_inicio ASC
+             WHERE {$where}
+             ORDER BY c.fecha_cita ASC, m.apellidos ASC, c.hora_inicio ASC
         ";
         $stmt = $pdo->prepare($sql);
         $stmt->execute($params);
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+        $fechaTitulo = !empty($adjustedFilters['fecha_desde'])
+            ? date('d/m/Y', strtotime((string) $adjustedFilters['fecha_desde']))
+            : date('d/m/Y');
+
         return [
-            'title'       => 'Reporte 6: Agenda Médica Diaria Imprimible (' . date('d/m/Y', strtotime($fecha)) . ')',
+            'title'       => 'Reporte: Agenda Médica Diaria (' . $fechaTitulo . ')',
+            'file_base'   => 'Agenda_Diaria',
             'orientation' => 'L',
             'columns'     => [
                 ['key' => 'horario',      'label' => 'Hora',         'width' => 12],
                 ['key' => 'codigo_cita',  'label' => 'Código',       'width' => 10],
-                ['key' => 'paciente',     'label' => 'Paciente',     'width' => 22],
+                ['key' => 'paciente',     'label' => 'Paciente',     'width' => 20],
                 ['key' => 'paciente_ci',  'label' => 'CI',           'width' => 9],
                 ['key' => 'sangre',       'label' => 'Sangre',       'width' => 7],
                 ['key' => 'medico',       'label' => 'Médico',       'width' => 18],
-                ['key' => 'estado',       'label' => 'Estado',       'width' => 10],
-                ['key' => 'motivo',       'label' => 'Motivo',       'width' => 12],
+                ['key' => 'especialidad', 'label' => 'Especialidad', 'width' => 12],
+                ['key' => 'estado',       'label' => 'Estado',       'width' => 12],
             ],
             'rows' => $rows,
         ];

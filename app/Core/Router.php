@@ -146,11 +146,17 @@ final class Router
             'historial'             => [HistorialController::class, 'index', ['Administrador', 'Recepcionista', 'Médico', 'Paciente']],
 
             // PAQUETE 5: ReportesAnalitica
-            'dashboard'             => [DashboardController::class, 'index', ['Administrador', 'Recepcionista', 'Médico', 'Paciente']],
-            'reportes'              => [ReporteController::class, 'index', ['Administrador', 'Recepcionista']],
-            'exportar/comprobante'  => [ExportacionController::class, 'comprobantePdf', ['Administrador', 'Recepcionista', 'Médico', 'Paciente']],
-            'exportar/reporte-pdf'  => [ExportacionController::class, 'reportePdf', ['Administrador', 'Recepcionista']],
-            'exportar/reporte-csv'  => [ExportacionController::class, 'reporteCsv', ['Administrador', 'Recepcionista']],
+            'dashboard'                 => [DashboardController::class, 'index', ['Administrador', 'Recepcionista', 'Médico', 'Paciente']],
+            'reportes'                  => [ReporteController::class, 'index', ['Administrador', 'Recepcionista']],
+            'reportes/ia-voz'           => [ReporteController::class, 'iaVoz', ['Administrador', 'Recepcionista']],
+            'reportes/ia-exportar-pdf'  => [ReporteController::class, 'iaExportarPdf', ['Administrador', 'Recepcionista']],
+            'reportes/ia-exportar-excel'=> [ReporteController::class, 'iaExportarExcel', ['Administrador', 'Recepcionista']],
+            'exportar/comprobante'      => [ExportacionController::class, 'comprobantePdf', ['Administrador', 'Recepcionista', 'Médico', 'Paciente']],
+            'exportar/reporte-pdf'      => [ExportacionController::class, 'reportePdf', ['Administrador', 'Recepcionista']],
+            'exportar/reporte-excel'    => [ExportacionController::class, 'reporteExcel', ['Administrador', 'Recepcionista']],
+            'exportar/reporte-csv'      => [ExportacionController::class, 'reporteCsv', ['Administrador', 'Recepcionista']],
+            'exportar/seleccion-pdf'    => [ExportacionController::class, 'seleccionInteractivaPdf', ['Administrador', 'Recepcionista']],
+            'exportar/seleccion-excel'  => [ExportacionController::class, 'seleccionInteractivaExcel', ['Administrador', 'Recepcionista']],
         ];
 
         if (!isset($routes[$route])) {
