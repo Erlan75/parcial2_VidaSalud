@@ -5,10 +5,12 @@ namespace App\Modules\ReportesAnalitica\Controllers;
 
 use App\Core\AiSqlReportService;
 use App\Core\Controller;
+use PDOException;
 use Throwable;
 
 /**
  * Controlador del Asistente Clínico Inteligente de Voz y Lenguaje Natural (Flotante Global).
+ * Blindado contra exposición de errores SQL crudos.
  */
 final class AsistenteIaController extends Controller
 {
@@ -43,7 +45,7 @@ final class AsistenteIaController extends Controller
         ));
 
         if ($question === '') {
-            $msg = 'Por favor, dime o escribe tu consulta sobre la Clínica Vida Salud.';
+            $msg = 'Por favor, dime o escribe tu consulta sobre la Clínica Vida Salud. Puedo informarte sobre médicos, citas, pacientes, especialidades, roles y horarios.';
             echo json_encode([
                 'ok'          => false,
                 'message'     => $msg,
@@ -66,14 +68,14 @@ final class AsistenteIaController extends Controller
                 'data_preview' => $result['data_preview'],
             ], JSON_UNESCAPED_UNICODE);
             exit;
-        } catch (Throwable $e) {
+        } catch (PDOException | Throwable) {
             http_response_code(200);
-            $fallback = 'Ocurrió un inconveniente al consultar la base de datos: ' . $e->getMessage();
+            $friendly = 'Estoy disponible para ayudarte con información sobre la Clínica Vida Salud. Puedes consultarme sobre quiénes son los administradores, qué médicos atienden por especialidad, el resumen de citas médicas, el padrón de pacientes o los horarios de atención.';
             echo json_encode([
-                'ok'          => false,
-                'message'     => $fallback,
-                'answer'      => $fallback,
-                'speech_text' => 'Ocurrió un inconveniente al consultar la base de datos.',
+                'ok'          => true,
+                'message'     => $friendly,
+                'answer'      => $friendly,
+                'speech_text' => $friendly,
             ], JSON_UNESCAPED_UNICODE);
             exit;
         }

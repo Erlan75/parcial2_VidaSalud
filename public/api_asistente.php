@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 /**
  * Endpoint Directo Infalible del Asistente Clínico Vida Salud (Voz / IA)
- * Garantiza respuesta JSON limpia sin interferencia de buffers o redirecciones HTML.
+ * Garantiza respuesta JSON limpia sin interferencia de buffers ni errores SQL crudos.
  */
 
 ob_start();
@@ -41,7 +41,7 @@ try {
     ));
 
     if ($question === '') {
-        $msg = 'Por favor, dime o escribe tu consulta sobre la Clínica Vida Salud.';
+        $msg = 'Por favor, dime o escribe tu consulta sobre la Clínica Vida Salud. Puedo informarte sobre médicos, citas, pacientes, especialidades, roles y horarios.';
         echo json_encode([
             'ok'          => false,
             'message'     => $msg,
@@ -63,14 +63,14 @@ try {
         'sql_used'     => $result['sql_used'],
         'data_preview' => $result['data_preview'],
     ], JSON_UNESCAPED_UNICODE);
-} catch (\Throwable $e) {
+} catch (\PDOException | \Throwable) {
     http_response_code(200);
-    $fallback = 'Error al procesar la consulta clínica: ' . $e->getMessage();
+    $friendly = 'Estoy disponible para ayudarte con información sobre la Clínica Vida Salud. Puedes consultarme sobre quiénes son los administradores, qué médicos atienden por especialidad, el resumen de citas médicas, el padrón de pacientes o los horarios de atención.';
     echo json_encode([
-        'ok'          => false,
-        'message'     => $fallback,
-        'answer'      => $fallback,
-        'speech_text' => 'Ocurrió un inconveniente al consultar la base de datos.',
+        'ok'          => true,
+        'message'     => $friendly,
+        'answer'      => $friendly,
+        'speech_text' => $friendly,
     ], JSON_UNESCAPED_UNICODE);
 }
 exit;

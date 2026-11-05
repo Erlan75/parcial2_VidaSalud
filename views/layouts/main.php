@@ -375,18 +375,17 @@ $activeMenu = $activeMenu ?? 'dashboard';
 
     <div class="vs-ai-messages" id="vsAiChatHistory">
         <div class="vs-ai-bubble bot">
-            👋 ¡Hola <strong><?= e($currentUser['nombres'] ?? $currentUser['nombre_usuario'] ?? '') ?></strong>! Soy el <strong>Asistente Clínico Inteligente</strong> de la Clínica Vida Salud.<br>
-            Presiona el micrófono <i class="bi bi-mic-fill text-danger"></i> o escribe para preguntarme en tiempo real sobre <strong>roles, usuarios, médicos, especialidades, horarios, pacientes, fichas médicas o citas</strong>.
+            👋 ¡Hola <strong><?= e($currentUser['nombre_completo'] ?? $currentUser['nombre_usuario'] ?? '') ?></strong>! Soy el <strong>Asistente Clínico Inteligente</strong> de la Clínica Vida Salud.<br>
+            Presiona el micrófono <i class="bi bi-mic-fill text-danger"></i> o escribe para preguntarme en tiempo real sobre <strong>médicos, citas, pacientes, especialidades, roles y horarios</strong>.
         </div>
     </div>
 
     <div class="vs-ai-chips">
-        <button type="button" class="vs-ai-chip" data-ask="¿Cuántos roles tenemos en el sistema?">¿Cuántos roles tenemos?</button>
         <button type="button" class="vs-ai-chip" data-ask="¿Quiénes son los administradores?">¿Quiénes son los administradores?</button>
-        <button type="button" class="vs-ai-chip" data-ask="¿Qué médicos atienden en pediatría?">Médicos en Pediatría</button>
-        <button type="button" class="vs-ai-chip" data-ask="¿Cuántos pacientes están registrados?">Total de pacientes</button>
-        <button type="button" class="vs-ai-chip" data-ask="¿Qué pacientes tienen alergias?">Pacientes con alergias</button>
-        <button type="button" class="vs-ai-chip" data-ask="¿Cuántas citas están atendidas, programadas o canceladas?">Estado de las citas</button>
+        <button type="button" class="vs-ai-chip" data-ask="¿Qué médicos atienden en pediatría?">¿Qué médicos atienden en pediatría?</button>
+        <button type="button" class="vs-ai-chip" data-ask="¿Cuántas citas se atendieron y cuántas se cancelaron?">¿Cuántas citas se atendieron y cuántas se cancelaron?</button>
+        <button type="button" class="vs-ai-chip" data-ask="¿Cuántos pacientes tenemos registrados?">¿Cuántos pacientes tenemos registrados?</button>
+        <button type="button" class="vs-ai-chip" data-ask="¿Cuáles son los horarios de atención?">¿Cuáles son los horarios de atención?</button>
     </div>
 
     <div class="vs-ai-footer">
@@ -439,7 +438,7 @@ $activeMenu = $activeMenu ?? 'dashboard';
         const voices = window.speechSynthesis.getVoices() || [];
         if (!voices.length) return null;
 
-        const esVoices = voices.filter(v => /^es([-_]|$)/i.test(v.lang || ''));
+        const esVoices = voices.filter(v => String(v.lang || '').toLowerCase().startsWith('es'));
         if (!esVoices.length) return null;
 
         const preferredNames = [
@@ -479,7 +478,7 @@ $activeMenu = $activeMenu ?? 'dashboard';
 
     function cleanSpeechText(rawText) {
         return String(rawText || '')
-            .replace(/[*#_`~>\[\]]+/g, '')
+            .replace(/[*•#_`~>\[\]—|]+/g, ' ')
             .replace(/Dr\(a\)\./gi, 'Doctor ')
             .replace(/\s+/g, ' ')
             .trim();
