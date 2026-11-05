@@ -45,11 +45,8 @@ $nombreUsuario = $currentUser['nombre_completo'] ?? ($currentUser['nombre_usuari
             <?php endif; ?>
 
             <?php if (in_array($rol, ['Administrador', 'Recepcionista'], true)): ?>
-                <a href="<?= url('reportes', ['modo' => 'tipo1']) ?>" class="btn btn-outline-light fw-semibold">
-                    <i class="bi bi-file-earmark-bar-graph me-1"></i> Reportes (Tipo 1 y 2)
-                </a>
-                <a href="<?= url('reportes', ['modo' => 'tipo3']) ?>" class="btn btn-warning fw-bold text-dark shadow-sm">
-                    <i class="bi bi-mic-fill text-danger me-1"></i> Reporte IA por Voz
+                <a href="<?= url('reportes') ?>" class="btn btn-outline-light fw-semibold">
+                    <i class="bi bi-file-earmark-bar-graph me-1"></i> Centro de Reportes
                 </a>
             <?php elseif ($rol === 'Paciente'): ?>
                 <a href="<?= url('historial') ?>" class="btn btn-outline-light fw-semibold">
@@ -304,14 +301,9 @@ $nombreUsuario = $currentUser['nombre_completo'] ?? ($currentUser['nombre_usuari
                         <small class="text-muted">Volumen consolidado por servicio clínico</small>
                     </div>
                     <?php if (in_array($rol, ['Administrador', 'Recepcionista'], true)): ?>
-                        <div class="d-flex gap-1">
-                            <a href="<?= url('reportes', ['modo' => 'tipo2']) ?>" class="btn btn-sm btn-outline-primary">
-                                <i class="bi bi-hand-index-thumb me-1"></i> Tipo 2 Interactivo
-                            </a>
-                            <a href="<?= url('reportes', ['tipo' => 'demanda_especialidad', 'modo' => 'tipo1']) ?>" class="btn btn-sm btn-vs-primary">
-                                Ver Detalle
-                            </a>
-                        </div>
+                        <a href="<?= url('reportes', ['tipo' => 'resumen_asistencia']) ?>" class="btn btn-sm btn-outline-primary">
+                            Ver Detalle
+                        </a>
                     <?php endif; ?>
                 </div>
                 <div style="position: relative; height: 250px;">
@@ -320,33 +312,6 @@ $nombreUsuario = $currentUser['nombre_completo'] ?? ($currentUser['nombre_usuari
             </div>
         </div>
     </div>
-
-    <?php if (in_array($rol, ['Administrador', 'Recepcionista'], true)): ?>
-        <!-- ACCESO RÁPIDO A LOS 3 TIPOS DE GENERACIÓN DE REPORTES DESDE EL DASHBOARD -->
-        <div class="vs-card p-3 p-md-4 mb-4" style="background: linear-gradient(145deg, #ffffff 0%, #f1f7fe 100%);">
-            <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
-                <div>
-                    <span class="badge bg-primary-subtle text-primary-emphasis border px-2 py-1 mb-1">
-                        Centro Analítico · PDF (.pdf) y Excel (.xlsx / .csv)
-                    </span>
-                    <h2 class="h6 fw-bold mb-0" style="color: var(--vs-navy);">
-                        Generación Rápida de Reportes Ejecutivos (3 Modalidades Oficiales)
-                    </h2>
-                </div>
-                <div class="d-flex flex-wrap gap-2">
-                    <a href="<?= url('reportes', ['modo' => 'tipo1']) ?>" class="btn btn-sm btn-outline-primary fw-semibold">
-                        <i class="bi bi-sliders2-vertical me-1"></i> Tipo 1: Por Parámetros
-                    </a>
-                    <a href="<?= url('reportes', ['modo' => 'tipo2']) ?>" class="btn btn-sm btn-outline-success fw-semibold">
-                        <i class="bi bi-hand-index-thumb-fill me-1"></i> Tipo 2: Selección Interactiva
-                    </a>
-                    <a href="<?= url('reportes', ['modo' => 'tipo3']) ?>" class="btn btn-sm btn-vs-primary fw-semibold">
-                        <i class="bi bi-mic-fill me-1"></i> Tipo 3: Asistente por Voz con IA
-                    </a>
-                </div>
-            </div>
-        </div>
-    <?php endif; ?>
 <?php endif; ?>
 
 <!-- TABLA / TARJETAS DE PRÓXIMAS CITAS EN AGENDA -->

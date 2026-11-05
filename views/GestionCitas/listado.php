@@ -68,6 +68,26 @@ $puedeAtender = in_array($rol, ['Médico', 'Administrador'], true);
                 <a href="<?= url('citas') ?>" class="btn btn-sm btn-outline-secondary" title="Limpiar"><i class="bi bi-x-lg"></i></a>
             </div>
         </form>
+        <?php
+        $exportCitasParams = array_filter([
+            'q'               => $filters['q'] ?? '',
+            'fecha_desde'     => $filters['fecha_desde'] ?? '',
+            'fecha_hasta'     => $filters['fecha_hasta'] ?? '',
+            'id_especialidad' => $filters['id_especialidad'] ?? '',
+            'estado'          => $filters['estado'] ?? '',
+        ], static fn($v) => $v !== null && $v !== '');
+        ?>
+        <div class="d-flex flex-wrap justify-content-between align-items-center mt-2 pt-2 border-top gap-2">
+            <span class="small text-muted"><i class="bi bi-list-check me-1"></i> Mostrando <strong><?= count($citas) ?></strong> citas con los filtros aplicados</span>
+            <div class="d-flex gap-2">
+                <a href="<?= url('exportar/citas-pdf', $exportCitasParams) ?>" class="btn btn-sm btn-danger px-3" title="Exportar citas filtradas a PDF (.pdf)">
+                    <i class="bi bi-file-earmark-pdf-fill me-1"></i> PDF
+                </a>
+                <a href="<?= url('exportar/citas-excel', $exportCitasParams) ?>" class="btn btn-sm btn-success px-3" title="Exportar citas filtradas a Excel (.xlsx)">
+                    <i class="bi bi-file-earmark-excel-fill me-1"></i> Excel
+                </a>
+            </div>
+        </div>
     </div>
 
     <div class="table-responsive">

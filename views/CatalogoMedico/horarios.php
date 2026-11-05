@@ -29,6 +29,15 @@ $diasMap = dias_semana_map();
                     </select>
                 </form>
             <?php endif; ?>
+            <?php
+            $exportHorParams = $selectedMedico ? ['id_medico' => $selectedMedico] : [];
+            ?>
+            <a href="<?= url('exportar/horarios-pdf', $exportHorParams) ?>" class="btn btn-sm btn-outline-danger" title="Exportar Horarios a PDF (.pdf)">
+                <i class="bi bi-file-earmark-pdf-fill me-1"></i> Exportar PDF
+            </a>
+            <a href="<?= url('exportar/horarios-excel', $exportHorParams) ?>" class="btn btn-sm btn-outline-success" title="Exportar Horarios a Excel (.xlsx)">
+                <i class="bi bi-file-earmark-excel-fill me-1"></i> Exportar Excel
+            </a>
             <?php if ($canManage): ?>
                 <button type="button" class="btn btn-sm btn-vs-primary px-3" data-bs-toggle="modal" data-bs-target="#modalNuevoHorario">
                     <i class="bi bi-plus-circle-fill me-1"></i> Asignar Turno

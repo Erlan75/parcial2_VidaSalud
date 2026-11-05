@@ -12,8 +12,14 @@ $esAdmin = ($currentUser['rol'] ?? '') === 'Administrador';
             <h6 class="mb-0 fw-bold" style="color:var(--vs-navy);"><i class="bi bi-award-fill me-1"></i> Catálogo Oficial de Especialidades Médicas</h6>
             <small class="text-muted">Administración de especialidades clínicas y servicios médicos disponibles</small>
         </div>
-        <div class="d-flex gap-2">
+        <div class="d-flex flex-wrap gap-2">
             <input type="text" class="form-control form-control-sm" style="max-width:220px;" placeholder="Filtrar especialidad..." data-table-filter="#tablaEspecialidades">
+            <a href="<?= url('exportar/especialidades-pdf') ?>" class="btn btn-sm btn-outline-danger" title="Exportar Especialidades a PDF (.pdf)">
+                <i class="bi bi-file-earmark-pdf-fill me-1"></i> Exportar PDF
+            </a>
+            <a href="<?= url('exportar/especialidades-excel') ?>" class="btn btn-sm btn-outline-success" title="Exportar Especialidades a Excel (.xlsx)">
+                <i class="bi bi-file-earmark-excel-fill me-1"></i> Exportar Excel
+            </a>
             <?php if ($esAdmin): ?>
                 <button type="button" class="btn btn-sm btn-vs-primary px-3" data-bs-toggle="modal" data-bs-target="#modalNuevaEsp">
                     <i class="bi bi-plus-circle-fill me-1"></i> Nueva Especialidad

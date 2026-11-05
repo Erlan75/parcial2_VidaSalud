@@ -11,6 +11,7 @@ use App\Modules\GestionCitas\Controllers\AgendaController;
 use App\Modules\GestionCitas\Controllers\CitaController;
 use App\Modules\GestionCitas\Controllers\HistorialController;
 use App\Modules\PacientesClinica\Controllers\PacienteController;
+use App\Modules\ReportesAnalitica\Controllers\AsistenteIaController;
 use App\Modules\ReportesAnalitica\Controllers\DashboardController;
 use App\Modules\ReportesAnalitica\Controllers\ExportacionController;
 use App\Modules\ReportesAnalitica\Controllers\ReporteController;
@@ -145,18 +146,27 @@ final class Router
             'agenda'                => [AgendaController::class, 'index', ['Administrador', 'Recepcionista', 'Médico']],
             'historial'             => [HistorialController::class, 'index', ['Administrador', 'Recepcionista', 'Médico', 'Paciente']],
 
-            // PAQUETE 5: ReportesAnalitica
-            'dashboard'                 => [DashboardController::class, 'index', ['Administrador', 'Recepcionista', 'Médico', 'Paciente']],
-            'reportes'                  => [ReporteController::class, 'index', ['Administrador', 'Recepcionista']],
-            'reportes/ia-voz'           => [ReporteController::class, 'iaVoz', ['Administrador', 'Recepcionista']],
-            'reportes/ia-exportar-pdf'  => [ReporteController::class, 'iaExportarPdf', ['Administrador', 'Recepcionista']],
-            'reportes/ia-exportar-excel'=> [ReporteController::class, 'iaExportarExcel', ['Administrador', 'Recepcionista']],
-            'exportar/comprobante'      => [ExportacionController::class, 'comprobantePdf', ['Administrador', 'Recepcionista', 'Médico', 'Paciente']],
-            'exportar/reporte-pdf'      => [ExportacionController::class, 'reportePdf', ['Administrador', 'Recepcionista']],
-            'exportar/reporte-excel'    => [ExportacionController::class, 'reporteExcel', ['Administrador', 'Recepcionista']],
-            'exportar/reporte-csv'      => [ExportacionController::class, 'reporteCsv', ['Administrador', 'Recepcionista']],
-            'exportar/seleccion-pdf'    => [ExportacionController::class, 'seleccionInteractivaPdf', ['Administrador', 'Recepcionista']],
-            'exportar/seleccion-excel'  => [ExportacionController::class, 'seleccionInteractivaExcel', ['Administrador', 'Recepcionista']],
+            // PAQUETE 5: ReportesAnalitica y Asistente Clínico IA
+            'dashboard'                    => [DashboardController::class, 'index', ['Administrador', 'Recepcionista', 'Médico', 'Paciente']],
+            'reportes'                     => [ReporteController::class, 'index', ['Administrador', 'Recepcionista']],
+            'asistente-ia/consultar'       => [AsistenteIaController::class, 'consultar', ['Administrador', 'Recepcionista', 'Médico', 'Paciente']],
+            'exportar/comprobante'         => [ExportacionController::class, 'comprobantePdf', ['Administrador', 'Recepcionista', 'Médico', 'Paciente']],
+            'exportar/reporte-pdf'         => [ExportacionController::class, 'reportePdf', ['Administrador', 'Recepcionista']],
+            'exportar/reporte-excel'       => [ExportacionController::class, 'reporteExcel', ['Administrador', 'Recepcionista']],
+            'exportar/reporte-csv'         => [ExportacionController::class, 'reporteCsv', ['Administrador', 'Recepcionista']],
+            'exportar/citas-pdf'           => [ExportacionController::class, 'citasPdf', ['Administrador', 'Recepcionista', 'Médico', 'Paciente']],
+            'exportar/citas-excel'         => [ExportacionController::class, 'citasExcel', ['Administrador', 'Recepcionista', 'Médico', 'Paciente']],
+            'exportar/pacientes-pdf'       => [ExportacionController::class, 'pacientesPdf', ['Administrador', 'Recepcionista', 'Médico']],
+            'exportar/pacientes-excel'     => [ExportacionController::class, 'pacientesExcel', ['Administrador', 'Recepcionista', 'Médico']],
+            'exportar/ficha-paciente-pdf'  => [ExportacionController::class, 'fichaPacientePdf', ['Administrador', 'Recepcionista', 'Médico']],
+            'exportar/medicos-pdf'         => [ExportacionController::class, 'medicosPdf', ['Administrador', 'Recepcionista']],
+            'exportar/medicos-excel'       => [ExportacionController::class, 'medicosExcel', ['Administrador', 'Recepcionista']],
+            'exportar/especialidades-pdf'  => [ExportacionController::class, 'especialidadesPdf', ['Administrador', 'Recepcionista']],
+            'exportar/especialidades-excel'=> [ExportacionController::class, 'especialidadesExcel', ['Administrador', 'Recepcionista']],
+            'exportar/horarios-pdf'        => [ExportacionController::class, 'horariosPdf', ['Administrador', 'Recepcionista', 'Médico']],
+            'exportar/horarios-excel'      => [ExportacionController::class, 'horariosExcel', ['Administrador', 'Recepcionista', 'Médico']],
+            'exportar/usuarios-pdf'        => [ExportacionController::class, 'usuariosPdf', ['Administrador']],
+            'exportar/usuarios-excel'      => [ExportacionController::class, 'usuariosExcel', ['Administrador']],
         ];
 
         if (!isset($routes[$route])) {

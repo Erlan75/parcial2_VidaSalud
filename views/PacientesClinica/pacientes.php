@@ -8,17 +8,32 @@ declare(strict_types=1);
 
 $tiposSangre = ['O+', 'O-', 'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'Desconocido'];
 ?>
+<?php
+$exportPacParams = array_filter([
+    'q'           => $filters['q'] ?? '',
+    'tipo_sangre' => $filters['tipo_sangre'] ?? '',
+    'estado'      => $filters['estado'] ?? '',
+], static fn($v) => $v !== null && $v !== '');
+?>
 <div class="vs-card">
     <div class="vs-card-header">
         <div>
             <h6 class="mb-0 fw-bold" style="color:var(--vs-navy);"><i class="bi bi-people-fill me-1"></i> Padrón Clínico de Pacientes y Ficha Médica</h6>
             <small class="text-muted">Gestión integral de expedientes clínicos, antecedentes médicos y contactos de emergencia</small>
         </div>
-        <?php if ($canRegister): ?>
-            <button type="button" class="btn btn-sm btn-vs-primary px-3" data-bs-toggle="modal" data-bs-target="#modalNuevoPaciente">
-                <i class="bi bi-person-plus-fill me-1"></i> Registrar Paciente Completo
-            </button>
-        <?php endif; ?>
+        <div class="d-flex flex-wrap gap-2">
+            <a href="<?= url('exportar/pacientes-pdf', $exportPacParams) ?>" class="btn btn-sm btn-outline-danger" title="Exportar Lista de Pacientes en PDF (.pdf)">
+                <i class="bi bi-file-earmark-pdf-fill me-1"></i> Exportar Lista PDF
+            </a>
+            <a href="<?= url('exportar/pacientes-excel', $exportPacParams) ?>" class="btn btn-sm btn-outline-success" title="Exportar Lista de Pacientes en Excel (.xlsx)">
+                <i class="bi bi-file-earmark-excel-fill me-1"></i> Exportar Lista Excel
+            </a>
+            <?php if ($canRegister): ?>
+                <button type="button" class="btn btn-sm btn-vs-primary px-3" data-bs-toggle="modal" data-bs-target="#modalNuevoPaciente">
+                    <i class="bi bi-person-plus-fill me-1"></i> Registrar Paciente Completo
+                </button>
+            <?php endif; ?>
+        </div>
     </div>
 
     <div class="p-3 border-bottom bg-light bg-opacity-50">
@@ -124,6 +139,9 @@ $tiposSangre = ['O+', 'O-', 'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'Desconocido']
                                 </button>
                                 <a href="<?= url('historial', ['id_paciente' => $p['id_paciente']]) ?>" class="btn btn-sm btn-outline-dark" title="Historial clínico de citas">
                                     <i class="bi bi-clock-history"></i>
+                                </a>
+                                <a href="<?= url('exportar/ficha-paciente-pdf', ['id_paciente' => $p['id_paciente']]) ?>" class="btn btn-sm btn-outline-danger" title="Descargar Ficha e Historial Clínico (.pdf)">
+                                    <i class="bi bi-file-earmark-medical-fill"></i> .pdf
                                 </a>
                                 <?php if ($canRegister): ?>
                                     <button type="button" class="btn btn-sm btn-outline-primary"

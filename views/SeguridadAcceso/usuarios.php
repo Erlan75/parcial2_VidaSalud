@@ -6,15 +6,30 @@ declare(strict_types=1);
 /** @var array|null $currentUser */
 /** @var string $csrfToken */
 ?>
+<?php
+$exportUsuParams = array_filter([
+    'q'      => $filters['q'] ?? '',
+    'id_rol' => $filters['id_rol'] ?? '',
+    'estado' => $filters['estado'] ?? '',
+], static fn($v) => $v !== null && $v !== '');
+?>
 <div class="vs-card mb-4">
     <div class="vs-card-header">
         <div>
             <h6 class="mb-0 fw-bold" style="color:var(--vs-navy);"><i class="bi bi-people-fill me-1"></i> Directorio de Usuarios y Roles del Sistema</h6>
             <small class="text-muted">Administración de cuentas de acceso y perfiles del personal clínico</small>
         </div>
-        <button type="button" class="btn btn-vs-primary btn-sm px-3" data-bs-toggle="modal" data-bs-target="#modalNuevoUsuario">
-            <i class="bi bi-person-plus-fill me-1"></i> Nuevo Usuario
-        </button>
+        <div class="d-flex flex-wrap gap-2">
+            <a href="<?= url('exportar/usuarios-pdf', $exportUsuParams) ?>" class="btn btn-sm btn-outline-danger" title="Exportar Usuarios y Roles a PDF (.pdf)">
+                <i class="bi bi-file-earmark-pdf-fill me-1"></i> Exportar PDF
+            </a>
+            <a href="<?= url('exportar/usuarios-excel', $exportUsuParams) ?>" class="btn btn-sm btn-outline-success" title="Exportar Usuarios y Roles a Excel (.xlsx)">
+                <i class="bi bi-file-earmark-excel-fill me-1"></i> Exportar Excel
+            </a>
+            <button type="button" class="btn btn-vs-primary btn-sm px-3" data-bs-toggle="modal" data-bs-target="#modalNuevoUsuario">
+                <i class="bi bi-person-plus-fill me-1"></i> Nuevo Usuario
+            </button>
+        </div>
     </div>
 
     <div class="p-3 border-bottom bg-light bg-opacity-50">

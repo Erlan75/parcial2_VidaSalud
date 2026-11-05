@@ -560,3 +560,4 @@ final class ExcelGenerator
         return implode('', $localParts) . $centralDir . $eocd;
     }
 }
+

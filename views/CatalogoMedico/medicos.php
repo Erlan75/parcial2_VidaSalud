@@ -7,17 +7,32 @@ declare(strict_types=1);
 /** @var bool $canEdit */
 /** @var string $csrfToken */
 ?>
+<?php
+$exportMedParams = array_filter([
+    'q'               => $filters['q'] ?? '',
+    'id_especialidad' => $filters['id_especialidad'] ?? '',
+    'estado'          => $filters['estado'] ?? '',
+], static fn($v) => $v !== null && $v !== '');
+?>
 <div class="vs-card">
     <div class="vs-card-header">
         <div>
             <h6 class="mb-0 fw-bold" style="color:var(--vs-navy);"><i class="bi bi-person-badge-fill me-1"></i> Cuerpo Médico y Especialidades Asociadas</h6>
             <small class="text-muted">Gestión del plantel de especialistas, matrículas profesionales y consultorios</small>
         </div>
-        <?php if ($canEdit): ?>
-            <button type="button" class="btn btn-sm btn-vs-primary px-3" data-bs-toggle="modal" data-bs-target="#modalNuevoMedico">
-                <i class="bi bi-plus-circle-fill me-1"></i> Registrar Médico
-            </button>
-        <?php endif; ?>
+        <div class="d-flex flex-wrap gap-2">
+            <a href="<?= url('exportar/medicos-pdf', $exportMedParams) ?>" class="btn btn-sm btn-outline-danger" title="Exportar Médicos a PDF (.pdf)">
+                <i class="bi bi-file-earmark-pdf-fill me-1"></i> Exportar PDF
+            </a>
+            <a href="<?= url('exportar/medicos-excel', $exportMedParams) ?>" class="btn btn-sm btn-outline-success" title="Exportar Médicos a Excel (.xlsx)">
+                <i class="bi bi-file-earmark-excel-fill me-1"></i> Exportar Excel
+            </a>
+            <?php if ($canEdit): ?>
+                <button type="button" class="btn btn-sm btn-vs-primary px-3" data-bs-toggle="modal" data-bs-target="#modalNuevoMedico">
+                    <i class="bi bi-plus-circle-fill me-1"></i> Registrar Médico
+                </button>
+            <?php endif; ?>
+        </div>
     </div>
 
     <div class="p-3 border-bottom bg-light bg-opacity-50">

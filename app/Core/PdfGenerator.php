@@ -279,6 +279,137 @@ final class PdfGenerator
     }
 
     /**
+     * Genera el Expediente Clínico Individual del Paciente:
+     * Datos Personales, Ficha Médica Preventiva, Contacto de Emergencia e Historial de Citas.
+     */
+    public static function buildPatientClinicalFile(array $paciente, array $citas, string $generatedBy = 'Administrador'): string
+    {
+        $pdf = new self('P');
+        $pdf->addPage();
+        $w = $pdf->getWidth();
+
+        // Membrete Institucional Superior
+        $pdf->rect(0, 0, $w, 84, '#002D62');
+        $pdf->rect(0, 84, $w, 5, '#2B579A');
+
+        $pdf->rect(34, 20, 34, 34, '#FFFFFF');
+        $pdf->rect(47, 26, 8, 22, '#002D62');
+        $pdf->rect(40, 33, 22, 8, '#002D62');
+
+        $pdf->text(80, 36, 'CLÍNICA VIDA SALUD · EXPEDIENTE E HISTORIAL CLÍNICO', 14, 'B', '#FFFFFF');
+        $pdf->text(80, 53, 'FICHA DEMOGRÁFICA, PERFIL MÉDICO PREVENTIVO Y REGISTRO DE ATENCIONES', 8.8, 'B', '#D4E6F7');
+        $pdf->text(80, 68, 'Emitido el: ' . date('d/m/Y H:i:s') . '   |   Emitido por: ' . $pdf->truncateText($generatedBy, 50), 8.0, 'R', '#E2E8F0');
+
+        // Caja Código de Paciente
+        $pdf->rect(438, 18, 122, 48, '#2B579A', '#D4E6F7', 0.8);
+        $pdf->text(450, 33, 'CÓDIGO EXPEDIENTE', 7.5, 'B', '#D4E6F7');
+        $pdf->text(450, 52, (string) ($paciente['codigo_paciente'] ?? 'PAC-00000'), 14, 'B', '#FFFFFF');
+
+        // 1. Datos Demográficos del Paciente
+        $pdf->rect(34, 102, 527, 94, '#FFFFFF', '#CBD5E1', 0.8);
+        $pdf->rect(34, 102, 527, 22, '#F1F5F9', '#CBD5E1', 0.6);
+        $pdf->text(44, 117, '1. DATOS PERSONALES Y DEMOGRÁFICOS DEL PACIENTE', 9.5, 'B', '#002D62');
+
+        $nombreCompleto = trim(($paciente['nombres'] ?? '') . ' ' . ($paciente['apellidos'] ?? ''));
+        $pdf->text(44, 138, 'Paciente:', 8.5, 'B', '#475569');
+        $pdf->text(95, 138, $pdf->truncateText($nombreCompleto, 48), 10.0, 'B', '#0F172A');
+        $pdf->text(340, 138, 'Cédula (CI):', 8.5, 'B', '#475569');
+        $pdf->text(405, 138, (string) ($paciente['ci'] ?? '-'), 9.5, 'B', '#0F172A');
+
+        $edad = (int) ($paciente['edad'] ?? 0);
+        $fnac = !empty($paciente['fecha_nacimiento']) ? date('d/m/Y', strtotime((string) $paciente['fecha_nacimiento'])) : '-';
+        $pdf->text(44, 156, 'Nacimiento / Edad:', 8.5, 'B', '#475569');
+        $pdf->text(132, 156, "{$fnac} ({$edad} años) · Sexo: " . ($paciente['sexo'] ?? '-'), 9.0, 'R', '#1E293B');
+        $pdf->text(340, 156, 'Teléfono:', 8.5, 'B', '#475569');
+        $pdf->text(392, 156, (string) ($paciente['telefono'] ?? '-'), 9.0, 'R', '#1E293B');
+
+        $pdf->text(44, 174, 'Dirección / Correo:', 8.5, 'B', '#475569');
+        $dirCorreo = trim(($paciente['direccion'] ?? '-') . '  |  ' . ($paciente['correo'] ?: 'Sin correo'));
+        $pdf->text(132, 174, $pdf->truncateText($dirCorreo, 76), 8.8, 'R', '#334155');
+
+        // 2. Ficha Médica Preventiva
+        $pdf->rect(34, 206, 527, 112, '#FFFBFB', '#FCA5A5', 0.8);
+        $pdf->rect(34, 206, 527, 22, '#FEE2E2', '#FCA5A5', 0.6);
+        $pdf->text(44, 221, '2. FICHA MÉDICA PREVENTIVA Y ANTECEDENTES CLÍNICOS', 9.5, 'B', '#991B1B');
+
+        $pdf->rect(455, 209, 96, 16, '#DC2626');
+        $pdf->text(463, 220, 'SANGRE: ' . ($paciente['tipo_sangre'] ?? 'Desconocido'), 8.0, 'B', '#FFFFFF');
+
+        $pdf->text(44, 243, 'Alergias Conocidas:', 8.5, 'B', '#991B1B');
+        $pdf->text(142, 243, $pdf->truncateText((string) ($paciente['alergias'] ?: 'Ninguna conocida'), 74), 9.0, 'B', '#7F1D1D');
+
+        $pdf->text(44, 262, 'Enf. Crónicas:', 8.5, 'B', '#475569');
+        $pdf->text(142, 262, $pdf->truncateText((string) ($paciente['enfermedades_cronicas'] ?: 'Ninguna reportada'), 74), 9.0, 'R', '#1E293B');
+
+        $pdf->text(44, 281, 'Medicación Actual:', 8.5, 'B', '#475569');
+        $pdf->text(142, 281, $pdf->truncateText((string) ($paciente['medicacion_actual'] ?: 'Ninguna'), 74), 9.0, 'R', '#1E293B');
+
+        $pdf->text(44, 300, 'Observaciones:', 8.5, 'B', '#475569');
+        $pdf->text(142, 300, $pdf->truncateText((string) ($paciente['observaciones'] ?: 'Sin observaciones adicionales'), 74), 8.8, 'I', '#334155');
+
+        // 3. Contacto de Emergencia
+        $pdf->rect(34, 328, 527, 48, '#F8FAFC', '#CBD5E1', 0.8);
+        $pdf->text(44, 344, '3. CONTACTO DE AUXILIO EN CASO DE EMERGENCIA', 9.0, 'B', '#002D62');
+        $cNom = (string) ($paciente['contacto_nombre'] ?: 'No registrado');
+        $cPar = (string) ($paciente['contacto_parentesco'] ?: '-');
+        $cTel = (string) ($paciente['contacto_telefono'] ?: '-');
+        $pdf->text(44, 362, "Nombre: {$cNom}   |   Parentesco: {$cPar}   |   Teléfono de Emergencia: {$cTel}", 9.0, 'R', '#1E293B');
+
+        // 4. Historial de Citas Médicas del Paciente
+        $cursorY = 392.0;
+        $pdf->text(34, $cursorY, '4. HISTORIAL CRONOLÓGICO DE CITAS Y EVOLUCIÓN CLÍNICA (' . count($citas) . ' REGISTROS)', 9.5, 'B', '#002D62');
+        $cursorY += 8.0;
+
+        $cols = [
+            ['label' => 'Código',       'w' => 56],
+            ['label' => 'Fecha / Hora', 'w' => 76],
+            ['label' => 'Médico / Esp.', 'w' => 145],
+            ['label' => 'Estado',       'w' => 66],
+            ['label' => 'Motivo / Diagnóstico Clínico', 'w' => 184],
+        ];
+
+        $pdf->rect(34, $cursorY, 527, 20, '#2B579A');
+        $cx = 34.0;
+        foreach ($cols as $c) {
+            $pdf->text($cx + 4, $cursorY + 13.5, strtoupper($c['label']), 7.5, 'B', '#FFFFFF');
+            $cx += $c['w'];
+        }
+        $cursorY += 20.0;
+
+        if (empty($citas)) {
+            $pdf->rect(34, $cursorY, 527, 26, '#FFFFFF', '#E2E8F0', 0.5);
+            $pdf->text(44, $cursorY + 16, 'El paciente aún no registra citas médicas en su historial clínico.', 8.5, 'I', '#64748B');
+            $cursorY += 26.0;
+        } else {
+            foreach (array_slice($citas, 0, 16) as $idx => $cita) {
+                $bg = ($idx % 2 === 0) ? '#FFFFFF' : '#F8FAFC';
+                $pdf->rect(34, $cursorY, 527, 20, $bg, '#E2E8F0', 0.4);
+
+                $fechaHora = date('d/m/Y', strtotime((string) $cita['fecha_cita'])) . ' ' . substr((string) $cita['hora_inicio'], 0, 5);
+                $medEsp = 'Dr(a). ' . ($cita['medico_nombre'] ?? '') . ' (' . ($cita['especialidad_nombre'] ?? '') . ')';
+                $detalle = !empty($cita['notas_medicas'])
+                    ? $cita['notas_medicas']
+                    : (!empty($cita['motivo_cancelacion']) ? 'Cancelada: ' . $cita['motivo_cancelacion'] : ($cita['motivo_consulta'] ?? '-'));
+
+                $pdf->text(38, $cursorY + 13, (string) ($cita['codigo_cita'] ?? ''), 7.8, 'B', '#002D62');
+                $pdf->text(94, $cursorY + 13, $fechaHora, 7.6, 'R', '#1E293B');
+                $pdf->text(170, $cursorY + 13, $pdf->truncateText($medEsp, 32), 7.6, 'R', '#1E293B');
+                $pdf->text(315, $cursorY + 13, (string) ($cita['estado'] ?? ''), 7.6, 'B', '#2B579A');
+                $pdf->text(381, $cursorY + 13, $pdf->truncateText((string) $detalle, 42), 7.5, 'R', '#334155');
+
+                $cursorY += 20.0;
+            }
+        }
+
+        // Pie de página
+        $pdf->line(34, 785, 561, 785, '#CBD5E1', 0.6);
+        $pdf->text(34, 800, 'Clínica Vida Salud · Expediente Clínico de ' . $pdf->truncateText($nombreCompleto, 45) . ' (' . ($paciente['codigo_paciente'] ?? '') . ')', 8.0, 'R', '#64748B');
+        $pdf->text(485, 800, 'Página 1 de 1', 8.0, 'B', '#002D62');
+
+        return $pdf->output();
+    }
+
+    /**
      * Genera Reporte Ejecutivo Multipágina Membretado en PDF (CU15)
      * $columns = [['key' => 'codigo', 'label' => 'Código', 'width' => 70], ...]
      */
