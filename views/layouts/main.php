@@ -33,7 +33,7 @@ $activeMenu = $activeMenu ?? 'dashboard';
         </div>
 
         <nav class="vs-sidebar-nav">
-            <div class="vs-nav-pkg">PANEL Y ANALÍTICA</div>
+            <div class="vs-nav-pkg">REPORTES Y ANALÍTICA</div>
             <a href="<?= url('dashboard') ?>" class="vs-nav-link <?= $activeMenu === 'dashboard' ? 'active' : '' ?>">
                 <i class="bi bi-grid-1x2-fill"></i>
                 <span>Panel Principal</span>
@@ -68,7 +68,7 @@ $activeMenu = $activeMenu ?? 'dashboard';
             </a>
 
             <?php if (in_array($rolActual, ['Administrador', 'Recepcionista', 'Médico'], true)): ?>
-                <div class="vs-nav-pkg">PACIENTES</div>
+                <div class="vs-nav-pkg">PACIENTES CLÍNICA</div>
                 <a href="<?= url('pacientes') ?>" class="vs-nav-link <?= $activeMenu === 'pacientes' ? 'active' : '' ?>">
                     <i class="bi bi-people-fill"></i>
                     <span>Pacientes y Ficha Médica</span>

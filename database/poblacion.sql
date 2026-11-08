@@ -373,4 +373,93 @@ INSERT INTO auditorias (id_usuario, modulo, operacion, id_registro_afectado, dat
  '{"id_paciente": 5, "tipo_sangre": "A+", "alergias": "Ninguna conocida", "enfermedades_cronicas": "Hipertensión Arterial Primaria", "medicacion_actual": "Losartán 50mg + Hidroclorotiazida 12.5mg"}'::jsonb,
  '192.168.1.35', '2026-10-23 15:45:00');
 
+-- ----------------------------------------------------------------------------
+-- 13. CONSOLIDACIÓN DE REGISTROS DE PRUEBAS FUNCIONALES (CP-CU01 A CP-CU18)
+-- ----------------------------------------------------------------------------
+
+-- Usuarios adicionales de prueba (CP-CU03, CP-CU05)
+INSERT INTO usuarios (id_usuario, id_rol, nombre_completo, nombre_usuario, correo_electronico, telefono, password_hash, estado) VALUES
+(19, 2, 'Lic. Gabriela Beltrán Soliz', 'gabriela.beltran', 'g.beltran@vidasalud.com.bo', '71098765', '$2y$10$JAE5s0xs7Sr71sFcdQTq/OhiRAQRw4CAw5/0oqfYcpuSmOk8/wcYm', 'Activo'),
+(20, 3, 'Dr. Gonzalo Javier Morales Camacho', 'gonzalo.morales', 'g.morales@vidasalud.com.bo', '78901234', '$2y$10$JAE5s0xs7Sr71sFcdQTq/OhiRAQRw4CAw5/0oqfYcpuSmOk8/wcYm', 'Activo')
+ON CONFLICT (id_usuario) DO NOTHING;
+
+SELECT setval('usuarios_id_usuario_seq', (SELECT MAX(id_usuario) FROM usuarios));
+
+-- Especialidad Dermatología (CP-CU04)
+INSERT INTO especialidades (id_especialidad, codigo_especialidad, nombre, descripcion, estado) VALUES
+(6, 'ESP-DER', 'Dermatología', 'Atención clínica de patologías de la piel, uñas y cabello', 'Activo')
+ON CONFLICT (id_especialidad) DO NOTHING;
+
+SELECT setval('especialidades_id_especialidad_seq', (SELECT MAX(id_especialidad) FROM especialidades));
+
+-- Médico adicional con registro MP-SC-18290 y especialidades (CP-CU05)
+INSERT INTO medicos (id_medico, id_usuario, codigo_medico, registro_profesional, nombres, apellidos, telefono, correo, estado) VALUES
+(9, 20, 'MED-0009', 'MP-SC-18290', 'Gonzalo Javier', 'Morales Camacho', '78901234', 'g.morales@vidasalud.com.bo', 'Activo')
+ON CONFLICT (id_medico) DO NOTHING;
+
+SELECT setval('medicos_id_medico_seq', (SELECT MAX(id_medico) FROM medicos));
+SELECT setval('seq_cod_medico', (SELECT MAX(id_medico) FROM medicos));
+
+INSERT INTO medico_especialidad (id_medico, id_especialidad, fecha_asignacion) VALUES
+(9, 1, '2026-10-25'),
+(9, 5, '2026-10-25')
+ON CONFLICT (id_medico, id_especialidad) DO NOTHING;
+
+-- Feriado Institucional de Navidad (CP-CU16)
+INSERT INTO bloqueos_agenda (id_bloqueo, id_medico, tipo_bloqueo, fecha_inicio, fecha_fin, motivo) VALUES
+(3, NULL, 'Feriado Institucional', '2026-12-25', '2026-12-25', 'Feriado Nacional de Navidad y Cierre Institucional')
+ON CONFLICT (id_bloqueo) DO NOTHING;
+
+SELECT setval('bloqueos_agenda_id_bloqueo_seq', (SELECT MAX(id_bloqueo) FROM bloqueos_agenda));
+
+-- Paciente adicional Silvia Patricia Mendoza y ficha médica preventiva (CP-CU07)
+INSERT INTO pacientes (id_paciente, id_usuario, codigo_paciente, ci, nombres, apellidos, fecha_nacimiento, sexo, telefono, correo, direccion, estado) VALUES
+(27, NULL, 'PAC-00027', '7845123', 'Silvia Patricia', 'Mendoza Justiniano', '1992-05-14', 'F', '71239874', 'silvia.mendoza@gmail.com', 'Calle Beni #45', 'Activo')
+ON CONFLICT (id_paciente) DO NOTHING;
+
+SELECT setval('pacientes_id_paciente_seq', (SELECT MAX(id_paciente) FROM pacientes));
+SELECT setval('seq_cod_paciente', (SELECT MAX(id_paciente) FROM pacientes));
+
+INSERT INTO fichas_medicas (id_ficha, id_paciente, tipo_sangre, alergias, enfermedades_cronicas, medicacion_actual, observaciones) VALUES
+(27, 27, 'O+', 'Penicilina y mariscos', 'Asma bronquial', 'Salbutamol inhalador', 'Paciente asmática controlada')
+ON CONFLICT (id_ficha) DO NOTHING;
+
+SELECT setval('fichas_medicas_id_ficha_seq', (SELECT MAX(id_ficha) FROM fichas_medicas));
+
+INSERT INTO contactos_emergencia (id_contacto, id_paciente, nombre_completo, parentesco, telefono) VALUES
+(27, 27, 'Carlos Mendoza', 'Hermano', '71239875')
+ON CONFLICT (id_contacto) DO NOTHING;
+
+SELECT setval('contactos_emergencia_id_contacto_seq', (SELECT MAX(id_contacto) FROM contactos_emergencia));
+
+-- Cita médica adicional programada (CP-CU08)
+INSERT INTO citas (id_cita, codigo_cita, id_paciente, id_medico, id_especialidad, id_usuario_registro, fecha_cita, hora_inicio, hora_fin, motivo_consulta, estado, notas_medicas, fecha_registro) VALUES
+(57, 'CM-00057', 1, 1, 1, 3, '2026-11-09', '08:00:00', '08:30:00', 'Control preventivo de presión arterial y fatiga matutina', 'Programada', NULL, '2026-10-25 08:30:00')
+ON CONFLICT (id_cita) DO NOTHING;
+
+SELECT setval('citas_id_cita_seq', (SELECT MAX(id_cita) FROM citas));
+SELECT setval('seq_cod_cita', (SELECT MAX(id_cita) FROM citas));
+
+-- Actualización de estados de prueba (CP-CU09, CP-CU10, CP-CU11)
+UPDATE citas SET estado = 'Atendida', notas_medicas = 'Paciente normotenso PA: 120/80 mmHg. Refiere mejoría notable tras tratamiento con dieta hiposódica. Se renueva orden médica preventiva por 90 días.' WHERE id_cita = 35;
+UPDATE citas SET fecha_cita = '2026-11-09', hora_inicio = '09:30:00', hora_fin = '10:00:00', estado = 'Programada' WHERE id_cita = 37;
+UPDATE citas SET estado = 'Cancelada' WHERE id_cita = 38;
+
+INSERT INTO cancelaciones_cita (id_cancelacion, id_cita, id_usuario, motivo_cancelacion, fecha_cancelacion) VALUES
+(6, 38, 1, 'Paciente reporta viaje de emergencia fuera del departamento y no podrá asistir', '2026-10-25 10:00:00')
+ON CONFLICT (id_cita) DO NOTHING;
+
+SELECT setval('cancelaciones_cita_id_cancelacion_seq', (SELECT MAX(id_cancelacion) FROM cancelaciones_cita));
+
+-- Eventos de auditoría de pruebas funcionales (CP-CU17)
+INSERT INTO auditorias (id_usuario, modulo, operacion, id_registro_afectado, datos_previos, datos_nuevos, ip_origen, fecha_hora) VALUES
+(1, 'Usuarios', 'INSERT', '19', NULL, '{"evento": "Alta de recepcionista Gabriela Beltran"}'::jsonb, '127.0.0.1', '2026-10-25 09:00:00'),
+(1, 'Especialidades', 'INSERT', '6', NULL, '{"evento": "Alta de especialidad Dermatologia"}'::jsonb, '127.0.0.1', '2026-10-25 09:15:00'),
+(1, 'Citas Médicas', 'INSERT', '57', NULL, '{"evento": "Programacion de cita CM-00057"}'::jsonb, '127.0.0.1', '2026-10-25 09:30:00'),
+(6, 'Citas Médicas', 'UPDATE', '35',
+ '{"id_cita": 35, "codigo_cita": "CM-00035", "estado": "Confirmada"}'::jsonb,
+ '{"id_cita": 35, "codigo_cita": "CM-00035", "estado": "Atendida", "notas_medicas": "Paciente normotenso PA: 120/80 mmHg..."}'::jsonb,
+ '127.0.0.1', '2026-10-25 10:15:00')
+ON CONFLICT DO NOTHING;
+
 COMMIT;
