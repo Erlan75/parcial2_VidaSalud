@@ -32,8 +32,8 @@ WORKDIR /var/www/html
 # Copiar código fuente de la aplicación
 COPY . /var/www/html/
 
-# Preparar directorios de almacenamiento para sesiones y bandeja de correos
-RUN mkdir -p /var/www/html/storage/sessions /var/www/html/storage/mail_outbox \
+# Preparar directorios de almacenamiento para sesiones, outbox y bloqueos de seguridad
+RUN mkdir -p /var/www/html/storage/sessions /var/www/html/storage/mail_outbox /var/www/html/storage/locks \
     && chown -R www-data:www-data /var/www/html/storage \
     && chmod -R 775 /var/www/html/storage
 

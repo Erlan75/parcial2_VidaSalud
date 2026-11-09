@@ -17,11 +17,129 @@ use Database;
  */
 final class AuthController extends Controller
 {
+    private const MAX_LOGIN_ATTEMPTS = 3;
+    private const LOGIN_LOCKOUT_SECONDS = 60;
+
     private UsuarioModel $usuarioModel;
 
     public function __construct()
     {
         $this->usuarioModel = new UsuarioModel();
+    }
+
+    /**
+     * Retorna la ruta al archivo de persistencia de bloqueo para una cuenta específica.
+     */
+    private function getLockFilePath(string $accountKey): string
+    {
+        $baseDir = defined('ROOT_PATH') ? ROOT_PATH : dirname(__DIR__, 4);
+        $locksDir = $baseDir . DIRECTORY_SEPARATOR . 'storage' . DIRECTORY_SEPARATOR . 'locks';
+        if (!is_dir($locksDir)) {
+            @mkdir($locksDir, 0775, true);
+        }
+        $hash = hash('sha256', strtolower(trim($accountKey)));
+        return $locksDir . DIRECTORY_SEPARATOR . 'login_' . $hash . '.json';
+    }
+
+    /**
+     * Consulta el estado de bloqueo de una cuenta.
+     * @return array{is_locked: bool, remaining_seconds: int, failed_attempts: int}
+     */
+    private function getAccountLockStatus(string $accountKey): array
+    {
+        $file = $this->getLockFilePath($accountKey);
+        if (!is_file($file)) {
+            return ['is_locked' => false, 'remaining_seconds' => 0, 'failed_attempts' => 0];
+        }
+
+        $raw = @file_get_contents($file);
+        if ($raw === false || trim($raw) === '') {
+            return ['is_locked' => false, 'remaining_seconds' => 0, 'failed_attempts' => 0];
+        }
+
+        $data = json_decode($raw, true);
+        if (!is_array($data)) {
+            return ['is_locked' => false, 'remaining_seconds' => 0, 'failed_attempts' => 0];
+        }
+
+        $lockedUntil = (int) ($data['locked_until'] ?? 0);
+        $failedAttempts = (int) ($data['failed_attempts'] ?? 0);
+        $now = time();
+
+        if ($lockedUntil > $now) {
+            $remaining = (int) max(1, ceil($lockedUntil - $now));
+            return [
+                'is_locked'         => true,
+                'remaining_seconds' => $remaining,
+                'failed_attempts'   => $failedAttempts,
+            ];
+        }
+
+        // Si el tiempo de penalización ya concluyó, se limpia el bloqueo expirado
+        if ($lockedUntil > 0 && $lockedUntil <= $now) {
+            $this->clearAccountLock($accountKey);
+            return ['is_locked' => false, 'remaining_seconds' => 0, 'failed_attempts' => 0];
+        }
+
+        // Ventana de expiración de intentos aislados: 15 minutos
+        $lastFailedAt = (int) ($data['last_failed_at'] ?? 0);
+        if ($lastFailedAt > 0 && ($now - $lastFailedAt) > 900) {
+            $this->clearAccountLock($accountKey);
+            return ['is_locked' => false, 'remaining_seconds' => 0, 'failed_attempts' => 0];
+        }
+
+        return [
+            'is_locked'         => false,
+            'remaining_seconds' => 0,
+            'failed_attempts'   => $failedAttempts,
+        ];
+    }
+
+    /**
+     * Incrementa los intentos fallidos de una cuenta y aplica penalización si alcanza el umbral.
+     * @return array{failed_attempts: int, is_now_locked: bool, remaining_attempts: int}
+     */
+    private function recordFailedLoginAttempt(string $accountKey): array
+    {
+        $file = $this->getLockFilePath($accountKey);
+        $status = $this->getAccountLockStatus($accountKey);
+
+        $now = time();
+        $newAttempts = $status['failed_attempts'] + 1;
+        $isNowLocked = false;
+        $lockedUntil = 0;
+
+        if ($newAttempts >= self::MAX_LOGIN_ATTEMPTS) {
+            $isNowLocked = true;
+            $lockedUntil = $now + self::LOGIN_LOCKOUT_SECONDS;
+        }
+
+        $payload = [
+            'account'         => strtolower(trim($accountKey)),
+            'failed_attempts' => $newAttempts,
+            'locked_until'    => $lockedUntil,
+            'last_failed_at'  => $now,
+            'ip'              => client_ip(),
+        ];
+
+        @file_put_contents($file, json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE), LOCK_EX);
+
+        return [
+            'failed_attempts'    => $newAttempts,
+            'is_now_locked'      => $isNowLocked,
+            'remaining_attempts' => (int) max(0, self::MAX_LOGIN_ATTEMPTS - $newAttempts),
+        ];
+    }
+
+    /**
+     * Elimina el archivo de bloqueo y reinicia los contadores para una cuenta.
+     */
+    private function clearAccountLock(string $accountKey): void
+    {
+        $file = $this->getLockFilePath($accountKey);
+        if (is_file($file)) {
+            @unlink($file);
+        }
     }
 
     public function loginForm(): void
@@ -162,19 +280,54 @@ final class AuthController extends Controller
     {
         $this->validatePostWithCsrf();
 
-        $identifier = trim((string) ($_POST['identificador'] ?? ''));
+        $rawIdentifier = (string) ($_POST['identificador'] ?? '');
         $password = (string) ($_POST['password'] ?? '');
+
+        // a) Normaliza el correo / identificador recibido
+        $identifier = trim(strtolower($rawIdentifier));
 
         if ($identifier === '' || $password === '') {
             Auth::setFlash('warning', 'Ingrese su nombre de usuario o correo electrónico y su contraseña.', 'Campos requeridos');
             $this->redirect('seguridad/login');
         }
 
+        // Resolver cuenta canónica en minúsculas (correo del usuario si existe en BD o identificador recibido)
+        $user = null;
         try {
             $user = $this->usuarioModel->findByIdentifier($identifier);
-            if (!$user || !$this->usuarioModel->verifyUserPassword($user, $password)) {
-                Auth::setFlash('error', 'Credenciales inválidas. Verifique su usuario/correo y contraseña.', 'Acceso denegado');
-                $this->redirect('seguridad/login');
+        } catch (\Throwable $e) {
+            Auth::setFlash('error', DatabaseExceptionParser::parse($e), 'Error de conexión');
+            $this->redirect('seguridad/login');
+        }
+
+        $accountKey = $user
+            ? trim(strtolower((string) $user['correo_electronico']))
+            : $identifier;
+
+        // b) Verifica si la cuenta está actualmente en período de bloqueo
+        $lockStatus = $this->getAccountLockStatus($accountKey);
+        if (!$lockStatus['is_locked'] && $accountKey !== $identifier) {
+            $lockStatus = $this->getAccountLockStatus($identifier);
+        }
+
+        if ($lockStatus['is_locked']) {
+            $segundosRestantes = $lockStatus['remaining_seconds'];
+            Auth::setFlash(
+                'error',
+                "Cuenta temporalmente bloqueada por seguridad debido a múltiples intentos fallidos. Por favor espere {$segundosRestantes} segundos antes de intentar nuevamente.",
+                'Acceso Bloqueado'
+            );
+            $this->redirect('seguridad/login');
+        }
+
+        // c) Si no está bloqueada, valida la contraseña con el hash de la base de datos
+        $isPasswordValid = $user && $this->usuarioModel->verifyUserPassword($user, $password);
+
+        if ($isPasswordValid) {
+            // Contraseña CORRECTA: Reinicia el contador de intentos fallidos a 0 y borra cualquier bloqueo activo
+            $this->clearAccountLock($accountKey);
+            if ($accountKey !== $identifier) {
+                $this->clearAccountLock($identifier);
             }
 
             if (($user['estado'] ?? '') !== 'Activo') {
@@ -192,10 +345,45 @@ final class AuthController extends Controller
 
             Auth::setFlash('success', 'Bienvenido(a), ' . $user['nombre_completo'] . ' (' . $user['rol_nombre'] . ').', 'Sesión iniciada');
             $this->redirect(Auth::homeRouteForRole((string) $user['rol_nombre']));
-        } catch (\Throwable $e) {
-            Auth::setFlash('error', DatabaseExceptionParser::parse($e), 'Error de conexión');
-            $this->redirect('seguridad/login');
         }
+
+        // Contraseña INCORRECTA: Incrementa el contador de fallos para ese correo específico
+        $failResult = $this->recordFailedLoginAttempt($accountKey);
+        if ($accountKey !== $identifier) {
+            $this->recordFailedLoginAttempt($identifier);
+        }
+
+        if ($failResult['is_now_locked']) {
+            // Si los fallos llegan a 3: Establece el bloqueo temporal por 60 segundos
+            Auth::setFlash(
+                'error',
+                'Ha superado el límite de 3 intentos permitidos. Su cuenta ha sido bloqueada por 1 minuto.',
+                'Acceso bloqueado'
+            );
+            $this->usuarioModel->registerLoginFailedAudit(
+                $user ? (int) $user['id_usuario'] : null,
+                $accountKey,
+                'Cuenta bloqueada por 60 segundos debido a 3 intentos fallidos consecutivos',
+                client_ip()
+            );
+        } else {
+            // Si lleva 1 o 2 fallos: Le quedan [3 - fallos] intentos antes de bloqueo temporal
+            $restantes = $failResult['remaining_attempts'];
+            $intentosPalabra = ($restantes === 1) ? 'intento' : 'intentos';
+            Auth::setFlash(
+                'error',
+                "Credenciales incorrectas. Le quedan {$restantes} {$intentosPalabra} antes de que su cuenta sea bloqueada temporalmente.",
+                'Acceso denegado'
+            );
+            $this->usuarioModel->registerLoginFailedAudit(
+                $user ? (int) $user['id_usuario'] : null,
+                $accountKey,
+                "Intento fallido de inicio de sesión ({$failResult['failed_attempts']}/3)",
+                client_ip()
+            );
+        }
+
+        $this->redirect('seguridad/login');
     }
 
     /**

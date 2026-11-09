@@ -3,11 +3,13 @@
 .env.local
 .env.*.local
 
-# Sesiones activas y correos generados en local
+# Sesiones activas, correos generados y bloqueos de seguridad
 /storage/sessions/*
 !/storage/sessions/.gitkeep
 /storage/mail_outbox/*
 !/storage/mail_outbox/.gitkeep
+/storage/locks/*
+!/storage/locks/.gitkeep
 
 # Dependencias o carpetas temporales
 /vendor/

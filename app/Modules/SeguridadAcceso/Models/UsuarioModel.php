@@ -110,6 +110,32 @@ final class UsuarioModel
         ]);
     }
 
+    /**
+     * Registra auditoría de intento fallido o bloqueo temporal por fuerza bruta
+     */
+    public function registerLoginFailedAudit(?int $idUsuario, string $identifier, string $motivo, string $ip): void
+    {
+        try {
+            $pdo = Database::getConnection();
+            $stmt = $pdo->prepare("
+                INSERT INTO auditorias (id_usuario, modulo, operacion, id_registro_afectado, datos_nuevos, ip_origen)
+                VALUES (:uid, 'Seguridad', 'LOGIN_FAILED', :reg, :nuevos::jsonb, :ip)
+            ");
+            $stmt->execute([
+                ':uid'    => $idUsuario,
+                ':reg'    => $idUsuario !== null && $idUsuario > 0 ? (string) $idUsuario : $identifier,
+                ':nuevos' => json_encode([
+                    'evento'        => 'Intento fallido de inicio de sesión',
+                    'identificador' => $identifier,
+                    'motivo'        => $motivo,
+                ], JSON_UNESCAPED_UNICODE),
+                ':ip'     => $ip,
+            ]);
+        } catch (\Throwable) {
+            // Silencioso para no interferir en el flujo de seguridad
+        }
+    }
+
     public function listAll(array $filters = []): array
     {
         $pdo = Database::getConnection();

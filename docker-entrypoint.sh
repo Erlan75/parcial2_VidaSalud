@@ -9,8 +9,8 @@ if [ "$LISTEN_PORT" != "80" ]; then
     sed -ri "s/<VirtualHost \*:80>/<VirtualHost *:${LISTEN_PORT}>/g" /etc/apache2/sites-available/000-default.conf
 fi
 
-# 2. Garantizar permisos de escritura en storage/ (sesiones y outbox de correo)
-mkdir -p /var/www/html/storage/sessions /var/www/html/storage/mail_outbox
+# 2. Garantizar permisos de escritura en storage/ (sesiones, outbox de correo y bloqueos)
+mkdir -p /var/www/html/storage/sessions /var/www/html/storage/mail_outbox /var/www/html/storage/locks
 chown -R www-data:www-data /var/www/html/storage
 chmod -R 775 /var/www/html/storage
 
