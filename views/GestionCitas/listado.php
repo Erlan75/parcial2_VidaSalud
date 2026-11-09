@@ -11,7 +11,45 @@ $rol = $currentUser['rol'] ?? '';
 $puedeAgendar = in_array($rol, ['Administrador', 'Recepcionista', 'Paciente'], true);
 $puedeAsistencia = in_array($rol, ['Administrador', 'Recepcionista'], true);
 $puedeAtender = in_array($rol, ['Médico', 'Administrador'], true);
+$alertasContingencia = $alertasContingencia ?? [];
 ?>
+
+<?php if (!empty($alertasContingencia)): ?>
+    <?php foreach ($alertasContingencia as $ac): ?>
+        <?php
+        $nuevaFechaFmt = date('d/m/Y', strtotime((string) $ac['nueva_fecha']));
+        $nuevaHoraFmt = substr((string) $ac['nueva_hora'], 0, 5);
+        $fechaAntFmt = !empty($ac['fecha_anterior']) ? date('d/m/Y', strtotime((string) $ac['fecha_anterior'])) : '';
+        $horaAntFmt = !empty($ac['hora_anterior']) ? substr((string) $ac['hora_anterior'], 0, 5) : '';
+        ?>
+        <div class="alert alert-warning border-0 shadow-sm d-flex flex-wrap justify-content-between align-items-center gap-3 mb-3"
+             style="background:#FFFBEB;border-left:5px solid #D97706 !important;color:#78350F;">
+            <div>
+                <div class="fw-bold mb-1">
+                    <i class="bi bi-exclamation-triangle-fill text-warning me-1"></i>
+                    Aviso importante: Su cita <strong>[<?= e($ac['codigo_cita']) ?>]</strong> fue reprogramada automáticamente al <strong><?= e($nuevaFechaFmt) ?></strong> a las <strong><?= e($nuevaHoraFmt) ?></strong> debido a un bloqueo de disponibilidad médica.
+                </div>
+                <div class="small">
+                    <?php if ($rol !== 'Paciente'): ?>
+                        <strong>Paciente:</strong> <?= e($ac['paciente_nombre']) ?> (<?= e($ac['codigo_paciente']) ?>) ·
+                    <?php endif; ?>
+                    <strong>Médico:</strong> Dr(a). <?= e($ac['medico_nombre']) ?> (<?= e($ac['especialidad_nombre']) ?>)
+                    <?php if ($fechaAntFmt !== ''): ?>
+                        · <span class="text-decoration-line-through text-danger">Anterior: <?= e($fechaAntFmt) ?> <?= e($horaAntFmt) ?></span>
+                    <?php endif; ?>
+                    · <strong>Motivo:</strong> <?= e((string) $ac['tipo_bloqueo']) ?> (<?= e((string) $ac['motivo_bloqueo']) ?>)
+                </div>
+            </div>
+            <div>
+                <a href="<?= url('exportar/comprobante', ['id_cita' => $ac['id_cita'], 'codigo' => $ac['codigo_cita']]) ?>" target="_blank"
+                   class="btn btn-sm btn-vs-primary">
+                    <i class="bi bi-qr-code me-1"></i> Nuevo Ticket PDF/QR
+                </a>
+            </div>
+        </div>
+    <?php endforeach; ?>
+<?php endif; ?>
+
 <div class="vs-card">
     <div class="vs-card-header">
         <div>
@@ -117,6 +155,18 @@ $puedeAtender = in_array($rol, ['Médico', 'Administrador'], true);
                         <td data-label="Fecha y Hora">
                             <div class="fw-bold" style="color:var(--vs-navy);"><?= date('d/m/Y', strtotime((string) $c['fecha_cita'])) ?></div>
                             <span class="small text-muted"><i class="bi bi-clock"></i> <?= e(substr((string) $c['hora_inicio'], 0, 5)) ?> - <?= e(substr((string) $c['hora_fin'], 0, 5)) ?></span>
+                            <?php if (!empty($c['reprogramada_contingencia'])): ?>
+                                <div class="mt-1">
+                                    <span class="badge text-bg-warning" style="font-size:0.68rem;">
+                                        <i class="bi bi-arrow-repeat"></i> Reprogramada por Contingencia
+                                    </span>
+                                    <?php if (!empty($c['contingencia_fecha_anterior'])): ?>
+                                        <div class="text-danger text-decoration-line-through" style="font-size:0.7rem;">
+                                            Ant: <?= date('d/m/Y', strtotime((string) $c['contingencia_fecha_anterior'])) ?> <?= e((string) ($c['contingencia_hora_anterior'] ?? '')) ?>
+                                        </div>
+                                    <?php endif; ?>
+                                </div>
+                            <?php endif; ?>
                         </td>
                         <td data-label="Paciente">
                             <div class="fw-semibold"><?= e($c['paciente_nombre']) ?></div>

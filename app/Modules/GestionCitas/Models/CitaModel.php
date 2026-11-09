@@ -388,16 +388,388 @@ final class CitaModel
                    m.nombres || ' ' || m.apellidos AS medico_nombre,
                    e.nombre AS especialidad_nombre,
                    cc.motivo_cancelacion,
-                   cc.fecha_cancelacion
+                   cc.fecha_cancelacion,
+                   CASE
+                       WHEN aud_cont.id_auditoria IS NOT NULL
+                            OR COALESCE(c.motivo_consulta, '') ILIKE '%Reprogramación automática por contingencia%'
+                       THEN TRUE
+                       ELSE FALSE
+                   END AS reprogramada_contingencia,
+                   COALESCE(aud_cont.datos_nuevos->>'fecha_anterior', aud_cont.datos_previos->>'fecha_cita') AS contingencia_fecha_anterior,
+                   SUBSTRING(COALESCE(aud_cont.datos_nuevos->>'hora_anterior', aud_cont.datos_previos->>'hora_inicio', '') FROM 1 FOR 5) AS contingencia_hora_anterior,
+                   COALESCE(aud_cont.datos_nuevos->>'tipo_bloqueo', 'Bloqueo de disponibilidad médica') AS contingencia_tipo_bloqueo,
+                   COALESCE(aud_cont.datos_nuevos->>'motivo_bloqueo', 'Contingencia institucional') AS contingencia_motivo_bloqueo,
+                   aud_cont.fecha_hora AS contingencia_fecha_hora
               FROM citas c
               JOIN pacientes p ON p.id_paciente = c.id_paciente
               LEFT JOIN fichas_medicas fm ON fm.id_paciente = p.id_paciente
               JOIN medicos m ON m.id_medico = c.id_medico
               JOIN especialidades e ON e.id_especialidad = c.id_especialidad
               LEFT JOIN cancelaciones_cita cc ON cc.id_cita = c.id_cita
+              LEFT JOIN LATERAL (
+                  SELECT a.id_auditoria,
+                         a.datos_previos,
+                         a.datos_nuevos,
+                         a.fecha_hora
+                    FROM auditorias a
+                   WHERE a.modulo = 'Citas Médicas'
+                     AND a.operacion = 'UPDATE'
+                     AND a.id_registro_afectado = c.id_cita::text
+                     AND (
+                         COALESCE(a.datos_nuevos->>'reprogramacion_contingencia', 'false') = 'true'
+                         OR COALESCE(a.datos_nuevos->>'motivo_consulta', '') ILIKE '%Reprogramación automática por contingencia%'
+                     )
+                   ORDER BY a.id_auditoria DESC
+                   LIMIT 1
+              ) aud_cont ON TRUE
              WHERE " . implode(' AND ', $where) . "
              ORDER BY {$orderDir}
              LIMIT " . max(10, min(1000, $limit));
+
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute($params);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * CU16: Algoritmo de Reubicación Automática Masiva Libre de Colisiones por Contingencia / Bloqueo de Agenda
+     */
+    public function reubicarCitasPorContingencia(
+        ?int $idMedico,
+        string $fechaInicio,
+        string $fechaFin,
+        int $idAdmin,
+        string $tipoBloqueo,
+        string $motivoBloqueo,
+        string $ip,
+        ?int $idBloqueo = null
+    ): array {
+        $pdo = Database::getConnection();
+
+        $sqlAfectadas = "
+            SELECT c.id_cita,
+                   c.codigo_cita,
+                   c.id_paciente,
+                   c.id_medico,
+                   c.id_especialidad,
+                   c.fecha_cita::text AS fecha_anterior,
+                   TO_CHAR(c.hora_inicio, 'HH24:MI') AS hora_anterior,
+                   TO_CHAR(c.hora_fin, 'HH24:MI') AS hora_fin_anterior,
+                   COALESCE(c.motivo_consulta, '') AS motivo_consulta,
+                   c.estado,
+                   p.codigo_paciente,
+                   p.nombres || ' ' || p.apellidos AS paciente_nombre,
+                   COALESCE(NULLIF(TRIM(p.correo), ''), u_pac.correo_electronico, '') AS paciente_correo,
+                   p.telefono AS paciente_telefono,
+                   m.codigo_medico,
+                   m.nombres || ' ' || m.apellidos AS medico_nombre,
+                   e.nombre AS especialidad
+              FROM citas c
+              JOIN pacientes p ON p.id_paciente = c.id_paciente
+              LEFT JOIN usuarios u_pac ON u_pac.id_usuario = p.id_usuario
+              JOIN medicos m ON m.id_medico = c.id_medico
+              JOIN especialidades e ON e.id_especialidad = c.id_especialidad
+             WHERE c.estado IN ('Programada', 'Confirmada')
+               AND c.fecha_cita BETWEEN :ini::date AND :fin::date
+               AND (:med::bigint IS NULL OR c.id_medico = :med::bigint)
+             ORDER BY c.fecha_cita ASC, c.hora_inicio ASC
+        ";
+
+        $stmtAfectadas = $pdo->prepare($sqlAfectadas);
+        $stmtAfectadas->bindValue(':ini', $fechaInicio, PDO::PARAM_STR);
+        $stmtAfectadas->bindValue(':fin', $fechaFin, PDO::PARAM_STR);
+        $stmtAfectadas->bindValue(':med', $idMedico, $idMedico === null ? PDO::PARAM_NULL : PDO::PARAM_INT);
+        $stmtAfectadas->execute();
+        $citasAfectadas = $stmtAfectadas->fetchAll(PDO::FETCH_ASSOC);
+
+        $reubicadas = [];
+        $noReubicadas = [];
+
+        if (empty($citasAfectadas)) {
+            return [
+                'total_afectadas'   => 0,
+                'total_reubicadas'  => 0,
+                'reubicadas'        => [],
+                'no_reubicadas'     => [],
+            ];
+        }
+
+        // Sentencias preparadas reutilizables para búsqueda y validación de colisiones
+        $stmtSlotDisponible = $pdo->prepare("
+            SELECT hora_inicio::text AS hora_inicio,
+                   hora_fin::text AS hora_fin,
+                   TO_CHAR(hora_inicio, 'HH24:MI') AS hora_inicio_fmt,
+                   TO_CHAR(hora_fin, 'HH24:MI') AS hora_fin_fmt,
+                   disponible
+              FROM fn_obtener_intervalos_disponibles(:id_medico::bigint, :fecha_candidata::date)
+             WHERE disponible = true
+             ORDER BY hora_inicio ASC
+             LIMIT 1
+        ");
+
+        $stmtSlotsTodos = $pdo->prepare("
+            SELECT hora_inicio::text AS hora_inicio,
+                   hora_fin::text AS hora_fin,
+                   TO_CHAR(hora_inicio, 'HH24:MI') AS hora_inicio_fmt,
+                   TO_CHAR(hora_fin, 'HH24:MI') AS hora_fin_fmt,
+                   disponible
+              FROM fn_obtener_intervalos_disponibles(:id_medico::bigint, :fecha_candidata::date)
+             WHERE disponible = true
+             ORDER BY hora_inicio ASC
+        ");
+
+        $stmtConflictoPaciente = $pdo->prepare("
+            SELECT 1
+              FROM citas
+             WHERE id_paciente = :id_paciente::bigint
+               AND fecha_cita = :fecha_candidata::date
+               AND estado IN ('Programada', 'Confirmada')
+               AND id_cita <> :id_cita::bigint
+               AND (hora_inicio < :hora_fin::time AND hora_fin > :hora_inicio::time)
+             LIMIT 1
+        ");
+
+        $stmtUpdateMotivo = $pdo->prepare("
+            UPDATE citas
+               SET motivo_consulta = :motivo
+             WHERE id_cita = :id_cita::bigint
+        ");
+
+        $stmtUpdateAuditoria = $pdo->prepare("
+            UPDATE auditorias
+               SET ip_origen = :ip,
+                   datos_nuevos = COALESCE(datos_nuevos, '{}'::jsonb) || jsonb_build_object(
+                       'reprogramacion_contingencia', true,
+                       'observacion_contingencia', 'Reprogramación automática por contingencia/bloqueo de agenda',
+                       'id_bloqueo', :id_bloqueo::bigint,
+                       'tipo_bloqueo', :tipo_bloqueo::text,
+                       'motivo_bloqueo', :motivo_bloqueo::text,
+                       'codigo_cita', :codigo_cita::text,
+                       'fecha_anterior', :fecha_anterior::text,
+                       'hora_anterior', :hora_anterior::text,
+                       'nueva_fecha', :nueva_fecha::text,
+                       'nueva_hora', :nueva_hora::text
+                   )
+             WHERE id_auditoria = (
+                 SELECT MAX(id_auditoria)
+                   FROM auditorias
+                  WHERE modulo = 'Citas Médicas'
+                    AND operacion = 'UPDATE'
+                    AND id_registro_afectado = :id_cita_txt
+             )
+        ");
+
+        $baseTs = max(strtotime($fechaFin), strtotime(date('Y-m-d')));
+
+        foreach ($citasAfectadas as $cita) {
+            $idCita = (int) $cita['id_cita'];
+            $idMedCita = (int) $cita['id_medico'];
+            $idPacCita = (int) $cita['id_paciente'];
+            $encontrado = false;
+            $ultimoError = 'No se encontró horario disponible en los próximos 60 días.';
+
+            for ($diaOffset = 1; $diaOffset <= 60; $diaOffset++) {
+                $fechaCandidata = date('Y-m-d', strtotime("+{$diaOffset} days", $baseTs));
+
+                try {
+                    // 1. Consultar primer bloque disponible según fn_obtener_intervalos_disponibles(...) LIMIT 1
+                    $stmtSlotDisponible->execute([
+                        ':id_medico'       => $idMedCita,
+                        ':fecha_candidata' => $fechaCandidata,
+                    ]);
+                    $primerSlot = $stmtSlotDisponible->fetch(PDO::FETCH_ASSOC);
+
+                    if (!$primerSlot) {
+                        continue;
+                    }
+
+                    // Verificar que el paciente no tenga ya otra cita activa en esa misma fecha_candidata y hora_inicio
+                    $stmtConflictoPaciente->execute([
+                        ':id_paciente'     => $idPacCita,
+                        ':fecha_candidata' => $fechaCandidata,
+                        ':id_cita'         => $idCita,
+                        ':hora_inicio'     => $primerSlot['hora_inicio'],
+                        ':hora_fin'        => $primerSlot['hora_fin'],
+                    ]);
+
+                    $slotElegido = null;
+                    if (!$stmtConflictoPaciente->fetchColumn()) {
+                        $slotElegido = $primerSlot;
+                    } else {
+                        // Si el primer bloque choca con otra cita del mismo paciente, evaluar los demás bloques libres del mismo día
+                        $stmtSlotsTodos->execute([
+                            ':id_medico'       => $idMedCita,
+                            ':fecha_candidata' => $fechaCandidata,
+                        ]);
+                        $candidatosDia = $stmtSlotsTodos->fetchAll(PDO::FETCH_ASSOC);
+                        foreach ($candidatosDia as $cand) {
+                            $stmtConflictoPaciente->execute([
+                                ':id_paciente'     => $idPacCita,
+                                ':fecha_candidata' => $fechaCandidata,
+                                ':id_cita'         => $idCita,
+                                ':hora_inicio'     => $cand['hora_inicio'],
+                                ':hora_fin'        => $cand['hora_fin'],
+                            ]);
+                            if (!$stmtConflictoPaciente->fetchColumn()) {
+                                $slotElegido = $cand;
+                                break;
+                            }
+                        }
+                    }
+
+                    if ($slotElegido === null) {
+                        continue;
+                    }
+
+                    $nuevaHoraInicio = (string) $slotElegido['hora_inicio'];
+                    $nuevaHoraFmt = (string) $slotElegido['hora_inicio_fmt'];
+
+                    // 2. Ejecutar procedimiento almacenado CALL sp_reprogramar_cita(...)
+                    $this->reprogramarCita($idCita, $idAdmin, $fechaCandidata, $nuevaHoraInicio, $ip);
+
+                    // 3. Concatenar en motivo_consulta y enriquecer registro en tabla auditorias
+                    $motivoLimpio = trim((string) preg_replace('/\s*\|\s*\[Reprogramación automática por contingencia.*?\]/u', '', (string) $cita['motivo_consulta']));
+                    if ($motivoLimpio === '') {
+                        $motivoLimpio = 'Consulta médica programada';
+                    }
+                    $leyendaContingencia = sprintf(
+                        'Reprogramación automática por contingencia/bloqueo de agenda (%s: %s | movida de %s %s a %s %s)',
+                        $tipoBloqueo,
+                        $motivoBloqueo,
+                        date('d/m/Y', strtotime((string) $cita['fecha_anterior'])),
+                        $cita['hora_anterior'],
+                        date('d/m/Y', strtotime($fechaCandidata)),
+                        $nuevaHoraFmt
+                    );
+                    $nuevoMotivo = $motivoLimpio . ' | [' . $leyendaContingencia . ']';
+
+                    $stmtUpdateMotivo->execute([
+                        ':motivo'  => $nuevoMotivo,
+                        ':id_cita' => $idCita,
+                    ]);
+
+                    $stmtUpdateAuditoria->bindValue(':ip', $ip, PDO::PARAM_STR);
+                    $stmtUpdateAuditoria->bindValue(':id_bloqueo', $idBloqueo, $idBloqueo === null ? PDO::PARAM_NULL : PDO::PARAM_INT);
+                    $stmtUpdateAuditoria->bindValue(':tipo_bloqueo', $tipoBloqueo, PDO::PARAM_STR);
+                    $stmtUpdateAuditoria->bindValue(':motivo_bloqueo', $motivoBloqueo, PDO::PARAM_STR);
+                    $stmtUpdateAuditoria->bindValue(':codigo_cita', (string) $cita['codigo_cita'], PDO::PARAM_STR);
+                    $stmtUpdateAuditoria->bindValue(':fecha_anterior', (string) $cita['fecha_anterior'], PDO::PARAM_STR);
+                    $stmtUpdateAuditoria->bindValue(':hora_anterior', (string) $cita['hora_anterior'], PDO::PARAM_STR);
+                    $stmtUpdateAuditoria->bindValue(':nueva_fecha', $fechaCandidata, PDO::PARAM_STR);
+                    $stmtUpdateAuditoria->bindValue(':nueva_hora', $nuevaHoraFmt, PDO::PARAM_STR);
+                    $stmtUpdateAuditoria->bindValue(':id_cita_txt', (string) $idCita, PDO::PARAM_STR);
+                    $stmtUpdateAuditoria->execute();
+
+                    $reubicadas[] = [
+                        'id_cita'         => $idCita,
+                        'codigo_cita'     => (string) $cita['codigo_cita'],
+                        'id_paciente'     => $idPacCita,
+                        'codigo_paciente' => (string) $cita['codigo_paciente'],
+                        'paciente_nombre' => (string) $cita['paciente_nombre'],
+                        'paciente_correo' => (string) $cita['paciente_correo'],
+                        'medico_nombre'   => (string) $cita['medico_nombre'],
+                        'especialidad'    => (string) $cita['especialidad'],
+                        'fecha_anterior'  => (string) $cita['fecha_anterior'],
+                        'hora_anterior'   => (string) $cita['hora_anterior'],
+                        'nueva_fecha'     => $fechaCandidata,
+                        'nueva_hora'      => $nuevaHoraFmt,
+                        'nueva_hora_fin'  => (string) $slotElegido['hora_fin_fmt'],
+                        'ticket_url'      => url('exportar/comprobante', ['id_cita' => $idCita, 'codigo' => $cita['codigo_cita']]),
+                        'verify_url'      => url('citas/verificar', ['codigo' => $cita['codigo_cita']]),
+                    ];
+
+                    $encontrado = true;
+                    break;
+                } catch (\Throwable $e) {
+                    $ultimoError = $e->getMessage();
+                    continue;
+                }
+            }
+
+            if (!$encontrado) {
+                $noReubicadas[] = [
+                    'id_cita'         => $idCita,
+                    'codigo_cita'     => (string) $cita['codigo_cita'],
+                    'paciente_nombre' => (string) $cita['paciente_nombre'],
+                    'medico_nombre'   => (string) $cita['medico_nombre'],
+                    'especialidad'    => (string) $cita['especialidad'],
+                    'fecha_anterior'  => (string) $cita['fecha_anterior'],
+                    'hora_anterior'   => (string) $cita['hora_anterior'],
+                    'motivo_fallo'    => $ultimoError,
+                ];
+            }
+        }
+
+        return [
+            'total_afectadas'  => count($citasAfectadas),
+            'total_reubicadas' => count($reubicadas),
+            'reubicadas'       => $reubicadas,
+            'no_reubicadas'    => $noReubicadas,
+        ];
+    }
+
+    /**
+     * Obtiene las citas activas que fueron reprogramadas automáticamente por contingencia
+     * para desplegar el banner de Alerta Visual en el Portal Web (Paciente y Recepción).
+     */
+    public function obtenerAlertasContingencia(?int $idPaciente = null, ?int $idMedico = null, int $limit = 15): array
+    {
+        $pdo = Database::getConnection();
+        $where = [
+            "c.estado IN ('Programada', 'Confirmada')",
+            'c.fecha_cita >= CURRENT_DATE',
+        ];
+        $params = [];
+
+        if ($idPaciente !== null && $idPaciente > 0) {
+            $where[] = 'c.id_paciente = :pac';
+            $params[':pac'] = $idPaciente;
+        }
+        if ($idMedico !== null && $idMedico > 0) {
+            $where[] = 'c.id_medico = :med';
+            $params[':med'] = $idMedico;
+        }
+
+        $sql = "
+            SELECT c.id_cita,
+                   c.codigo_cita,
+                   c.id_paciente,
+                   c.id_medico,
+                   c.fecha_cita::text AS nueva_fecha,
+                   TO_CHAR(c.hora_inicio, 'HH24:MI') AS nueva_hora,
+                   TO_CHAR(c.hora_fin, 'HH24:MI') AS nueva_hora_fin,
+                   c.estado,
+                   p.codigo_paciente,
+                   p.nombres || ' ' || p.apellidos AS paciente_nombre,
+                   m.nombres || ' ' || m.apellidos AS medico_nombre,
+                   e.nombre AS especialidad_nombre,
+                   COALESCE(aud.datos_nuevos->>'fecha_anterior', aud.datos_previos->>'fecha_cita') AS fecha_anterior,
+                   SUBSTRING(COALESCE(aud.datos_nuevos->>'hora_anterior', aud.datos_previos->>'hora_inicio', '') FROM 1 FOR 5) AS hora_anterior,
+                   COALESCE(aud.datos_nuevos->>'tipo_bloqueo', 'Bloqueo de disponibilidad médica') AS tipo_bloqueo,
+                   COALESCE(aud.datos_nuevos->>'motivo_bloqueo', 'Contingencia institucional') AS motivo_bloqueo,
+                   aud.fecha_hora AS fecha_reprogramacion
+              FROM citas c
+              JOIN pacientes p ON p.id_paciente = c.id_paciente
+              JOIN medicos m ON m.id_medico = c.id_medico
+              JOIN especialidades e ON e.id_especialidad = c.id_especialidad
+              JOIN LATERAL (
+                  SELECT a.datos_previos,
+                         a.datos_nuevos,
+                         a.fecha_hora
+                    FROM auditorias a
+                   WHERE a.modulo = 'Citas Médicas'
+                     AND a.operacion = 'UPDATE'
+                     AND a.id_registro_afectado = c.id_cita::text
+                     AND (
+                         COALESCE(a.datos_nuevos->>'reprogramacion_contingencia', 'false') = 'true'
+                         OR COALESCE(a.datos_nuevos->>'motivo_consulta', '') ILIKE '%Reprogramación automática por contingencia%'
+                     )
+                   ORDER BY a.id_auditoria DESC
+                   LIMIT 1
+              ) aud ON TRUE
+             WHERE " . implode(' AND ', $where) . "
+             ORDER BY aud.fecha_hora DESC, c.fecha_cita ASC, c.hora_inicio ASC
+             LIMIT " . max(1, min(100, $limit));
 
         $stmt = $pdo->prepare($sql);
         $stmt->execute($params);

@@ -32,6 +32,7 @@ final class HistorialController extends Controller
 
         $paciente = $idPaciente > 0 ? $pacModel->findById($idPaciente) : null;
         $historial = $paciente ? $citaModel->listCitas(['id_paciente' => $idPaciente], 500) : [];
+        $alertasContingencia = $paciente ? $citaModel->obtenerAlertasContingencia((int) $paciente['id_paciente'], null, 15) : [];
 
         $resumen = [
             'total'        => count($historial),
@@ -51,12 +52,13 @@ final class HistorialController extends Controller
         }
 
         $this->render('GestionCitas/historial', [
-            'pageTitle'      => Auth::hasRole('Paciente') ? 'Mi Historial Clínico de Citas' : 'Historial por Paciente',
-            'activeMenu'     => 'historial',
-            'paciente'       => $paciente,
-            'historial'      => $historial,
-            'resumen'        => $resumen,
-            'pacientesLista' => $pacientesLista,
+            'pageTitle'           => Auth::hasRole('Paciente') ? 'Mi Historial Clínico de Citas' : 'Historial por Paciente',
+            'activeMenu'          => 'historial',
+            'paciente'            => $paciente,
+            'historial'           => $historial,
+            'alertasContingencia' => $alertasContingencia,
+            'resumen'             => $resumen,
+            'pacientesLista'      => $pacientesLista,
         ]);
     }
 }

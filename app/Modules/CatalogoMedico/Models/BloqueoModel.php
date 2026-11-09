@@ -3,11 +3,14 @@ declare(strict_types=1);
 
 namespace App\Modules\CatalogoMedico\Models;
 
+use App\Core\Mailer;
+use App\Modules\GestionCitas\Models\CitaModel;
 use Database;
 use PDO;
 
 /**
  * CU16: Modelo de Feriados Institucionales y Bloqueos de Agenda Médica
+ * Incluye Reprogramación Automática Masiva por Contingencia y Notificación Híbrida.
  */
 final class BloqueoModel
 {
@@ -109,5 +112,90 @@ final class BloqueoModel
             }
             throw $e;
         }
+    }
+
+    /**
+     * Reubica automáticamente todas las citas activas ('Programada' o 'Confirmada') afectadas por el bloqueo
+     * al próximo turno disponible libre de colisiones y despacha la notificación híbrida (Correo SMTP + Alerta Web).
+     */
+    public function reubicarYNotificarCitasAfectadas(
+        ?int $idMedico,
+        string $fechaInicio,
+        string $fechaFin,
+        int $idUsuarioAdmin,
+        string $tipoBloqueo,
+        string $motivoBloqueo,
+        string $ip,
+        ?int $idBloqueo = null
+    ): array {
+        $citaModel = new CitaModel();
+        $resultado = $citaModel->reubicarCitasPorContingencia(
+            $idMedico,
+            $fechaInicio,
+            $fechaFin,
+            $idUsuarioAdmin,
+            $tipoBloqueo,
+            $motivoBloqueo,
+            $ip,
+            $idBloqueo
+        );
+
+        $reubicadasConEstado = [];
+        $enviadosSmtp = 0;
+        $notificadosLocal = 0;
+
+        foreach ($resultado['reubicadas'] as $citaReubicada) {
+            try {
+                $mailResult = Mailer::sendContingencyRescheduleEmail($citaReubicada, $tipoBloqueo, $motivoBloqueo);
+            } catch (\Throwable $mailErr) {
+                $mailResult = [
+                    'sent_smtp'    => false,
+                    'simulated'    => true,
+                    'recipient'    => $citaReubicada['paciente_correo'] ?? '',
+                    'outbox'       => '',
+                    'status_label' => 'Alerta en Portal Web activa',
+                    'message'      => 'Excepción SMTP controlada: ' . $mailErr->getMessage(),
+                ];
+            }
+
+            if (!empty($mailResult['sent_smtp'])) {
+                $enviadosSmtp++;
+            } else {
+                $notificadosLocal++;
+            }
+
+            $citaReubicada['correo_enviado_smtp'] = (bool) ($mailResult['sent_smtp'] ?? false);
+            $citaReubicada['correo_simulado'] = (bool) ($mailResult['simulated'] ?? true);
+            $citaReubicada['correo_estado_label'] = (string) ($mailResult['status_label'] ?? 'Notificado');
+            $citaReubicada['correo_mensaje'] = (string) ($mailResult['message'] ?? '');
+            $citaReubicada['correo_outbox'] = (string) ($mailResult['outbox'] ?? '');
+
+            $reubicadasConEstado[] = $citaReubicada;
+        }
+
+        return [
+            'id_bloqueo'        => $idBloqueo,
+            'tipo_bloqueo'      => $tipoBloqueo,
+            'motivo_bloqueo'    => $motivoBloqueo,
+            'fecha_inicio'      => $fechaInicio,
+            'fecha_fin'         => $fechaFin,
+            'total_afectadas'   => (int) $resultado['total_afectadas'],
+            'total_reubicadas'  => count($reubicadasConEstado),
+            'enviados_smtp'     => $enviadosSmtp,
+            'respaldos_locales' => $notificadosLocal,
+            'reubicadas'        => $reubicadasConEstado,
+            'no_reubicadas'     => $resultado['no_reubicadas'],
+            'fecha_proceso'     => date('d/m/Y H:i:s'),
+        ];
+    }
+
+    /**
+     * Obtiene el historial reciente de citas reprogramadas automáticamente por contingencia
+     * registrado en la tabla auditorias para exhibición permanente en la vista CU16.
+     */
+    public function listarReubicacionesContingenciaRecientes(?int $idMedico = null, int $limit = 20): array
+    {
+        $citaModel = new CitaModel();
+        return $citaModel->obtenerAlertasContingencia(null, $idMedico, $limit);
     }
 }

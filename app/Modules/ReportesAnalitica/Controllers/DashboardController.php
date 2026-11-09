@@ -40,6 +40,7 @@ final class DashboardController extends Controller
         }
 
         $proximasCitas = $citaModel->listCitas($proximasFilters, 10);
+        $alertasContingencia = $citaModel->obtenerAlertasContingencia($idPaciente, $idMedico, 10);
         $chartEstados = $reporteModel->getChartDistribucionEstados();
         $chartEspecialidades = $reporteModel->getChartDemandaEspecialidades();
 
@@ -48,6 +49,7 @@ final class DashboardController extends Controller
             'activeMenu'          => 'dashboard',
             'kpis'                => $kpis,
             'proximasCitas'       => $proximasCitas,
+            'alertasContingencia' => $alertasContingencia,
             'chartEstados'        => $chartEstados,
             'chartEspecialidades' => $chartEspecialidades,
             'fichaPaciente'       => $fichaPaciente,

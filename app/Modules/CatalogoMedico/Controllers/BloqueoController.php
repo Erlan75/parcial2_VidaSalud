@@ -27,12 +27,17 @@ final class BloqueoController extends Controller
         $medicoModel = new MedicoModel();
         $scopeMed = Auth::hasRole('Médico') ? Auth::medicoId() : null;
 
+        $resumenContingencia = $_SESSION['vs_contingency_summary'] ?? null;
+        unset($_SESSION['vs_contingency_summary']);
+
         $this->render('CatalogoMedico/bloqueos', [
-            'pageTitle'  => 'Feriados y Licencias',
-            'activeMenu' => 'bloqueos',
-            'bloqueos'   => $this->model->listAll($scopeMed),
-            'medicos'    => $medicoModel->listAll(['estado' => 'Activo']),
-            'canManage'  => Auth::hasRole('Administrador'),
+            'pageTitle'             => 'Feriados y Licencias',
+            'activeMenu'            => 'bloqueos',
+            'bloqueos'              => $this->model->listAll($scopeMed),
+            'medicos'               => $medicoModel->listAll(['estado' => 'Activo']),
+            'canManage'             => Auth::hasRole('Administrador'),
+            'resumenContingencia'   => $resumenContingencia,
+            'historialContingencia' => $this->model->listarReubicacionesContingenciaRecientes($scopeMed, 20),
         ]);
     }
 
@@ -49,6 +54,7 @@ final class BloqueoController extends Controller
         $fechaInicio = trim((string) ($_POST['fecha_inicio'] ?? ''));
         $fechaFin = trim((string) ($_POST['fecha_fin'] ?? ''));
         $motivo = trim((string) ($_POST['motivo'] ?? ''));
+        $reprogramarAfectadas = !empty($_POST['reprogramar_afectadas']);
 
         $tiposPermitidos = ['Feriado Institucional', 'Vacaciones', 'Licencia Médica', 'Congreso'];
         if (!in_array($tipoBloqueo, $tiposPermitidos, true)) {
@@ -67,16 +73,54 @@ final class BloqueoController extends Controller
         }
 
         try {
+            $idAdmin = (int) Auth::id();
+            $ip = client_ip();
+
             $id = $this->model->registrarBloqueo(
                 $idMedico,
-                (int) Auth::id(),
+                $idAdmin,
                 $tipoBloqueo,
                 $fechaInicio,
                 $fechaFin,
                 $motivo,
-                client_ip()
+                $ip
             );
-            Auth::setFlash('success', "Bloqueo de agenda (#{$id}) registrado exitosamente.", 'Bloqueo activo');
+
+            if ($reprogramarAfectadas) {
+                $resumen = $this->model->reubicarYNotificarCitasAfectadas(
+                    $idMedico,
+                    $fechaInicio,
+                    $fechaFin,
+                    $idAdmin,
+                    $tipoBloqueo,
+                    $motivo,
+                    $ip,
+                    $id
+                );
+                $_SESSION['vs_contingency_summary'] = $resumen;
+
+                if ($resumen['total_reubicadas'] > 0) {
+                    Auth::setFlash(
+                        'success',
+                        "Bloqueo (#{$id}) registrado. Se reprogramaron automáticamente {$resumen['total_reubicadas']} de {$resumen['total_afectadas']} cita(s) activa(s) al próximo turno disponible y se notificó a los pacientes.",
+                        'Contingencia Ejecutada'
+                    );
+                } elseif ($resumen['total_afectadas'] === 0) {
+                    Auth::setFlash(
+                        'success',
+                        "Bloqueo de agenda (#{$id}) registrado exitosamente. No se encontraron citas activas afectadas en las fechas bloqueadas.",
+                        'Bloqueo Activo'
+                    );
+                } else {
+                    Auth::setFlash(
+                        'warning',
+                        "Bloqueo (#{$id}) registrado. Se detectaron {$resumen['total_afectadas']} cita(s) en el rango, pero no se hallaron horarios libres dentro de los próximos 60 días.",
+                        'Revisión Requerida'
+                    );
+                }
+            } else {
+                Auth::setFlash('success', "Bloqueo de agenda (#{$id}) registrado exitosamente.", 'Bloqueo Activo');
+            }
         } catch (\Throwable $e) {
             Auth::setFlash('error', DatabaseExceptionParser::parse($e), 'No se pudo registrar el bloqueo');
         }

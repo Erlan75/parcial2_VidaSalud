@@ -57,6 +57,42 @@ $nombreUsuario = $currentUser['nombre_completo'] ?? ($currentUser['nombre_usuari
     </div>
 </div>
 
+<?php if (!empty($alertasContingencia)): ?>
+    <?php foreach ($alertasContingencia as $ac): ?>
+        <?php
+        $nuevaFechaFmt = date('d/m/Y', strtotime((string) $ac['nueva_fecha']));
+        $nuevaHoraFmt = substr((string) $ac['nueva_hora'], 0, 5);
+        $fechaAntFmt = !empty($ac['fecha_anterior']) ? date('d/m/Y', strtotime((string) $ac['fecha_anterior'])) : '';
+        $horaAntFmt = !empty($ac['hora_anterior']) ? substr((string) $ac['hora_anterior'], 0, 5) : '';
+        ?>
+        <div class="alert alert-warning border-0 shadow-sm d-flex flex-wrap justify-content-between align-items-center gap-3 mb-3"
+             style="background:#FFFBEB;border-left:5px solid #D97706 !important;color:#78350F;">
+            <div>
+                <div class="fw-bold mb-1">
+                    <i class="bi bi-exclamation-triangle-fill text-warning me-1"></i>
+                    Aviso importante: Su cita <strong>[<?= e($ac['codigo_cita']) ?>]</strong> fue reprogramada automáticamente al <strong><?= e($nuevaFechaFmt) ?></strong> a las <strong><?= e($nuevaHoraFmt) ?></strong> debido a un bloqueo de disponibilidad médica.
+                </div>
+                <div class="small">
+                    <?php if ($rol !== 'Paciente'): ?>
+                        <strong>Paciente:</strong> <?= e($ac['paciente_nombre']) ?> (<?= e($ac['codigo_paciente']) ?>) ·
+                    <?php endif; ?>
+                    <strong>Médico:</strong> Dr(a). <?= e($ac['medico_nombre']) ?> (<?= e($ac['especialidad_nombre']) ?>)
+                    <?php if ($fechaAntFmt !== ''): ?>
+                        · <span class="text-decoration-line-through text-danger">Anterior: <?= e($fechaAntFmt) ?> <?= e($horaAntFmt) ?></span>
+                    <?php endif; ?>
+                    · <strong>Motivo:</strong> <?= e((string) $ac['tipo_bloqueo']) ?> (<?= e((string) $ac['motivo_bloqueo']) ?>)
+                </div>
+            </div>
+            <div class="d-flex gap-2">
+                <a href="<?= url('exportar/comprobante', ['id_cita' => $ac['id_cita'], 'codigo' => $ac['codigo_cita']]) ?>" target="_blank"
+                   class="btn btn-sm btn-vs-primary">
+                    <i class="bi bi-qr-code me-1"></i> Nuevo Ticket PDF/QR
+                </a>
+            </div>
+        </div>
+    <?php endforeach; ?>
+<?php endif; ?>
+
 <!-- TARJETAS KPI ADAPTATIVAS SEGÚN ROL -->
 <?php if ($rol === 'Paciente'): ?>
     <div class="row g-3 mb-4">

@@ -40,19 +40,24 @@ final class CitaController extends Controller
         ];
 
         // Restricción de alcance por rol
+        $idPacAlertas = null;
+        $idMedAlertas = null;
         if (Auth::hasRole('Paciente')) {
             $filters['id_paciente'] = (int) Auth::pacienteId();
+            $idPacAlertas = $filters['id_paciente'];
         } elseif (Auth::hasRole('Médico') && empty($filters['id_medico'])) {
             $filters['id_medico'] = (int) Auth::medicoId();
+            $idMedAlertas = $filters['id_medico'];
         }
 
         $this->render('GestionCitas/listado', [
-            'pageTitle'      => Auth::hasRole('Paciente') ? 'Mis Citas Médicas' : 'Gestión Integral de Citas Médicas',
-            'activeMenu'     => 'citas_listado',
-            'citas'          => $this->model->listCitas($filters, 300),
-            'especialidades' => $espModel->listAll(true),
-            'medicos'        => $medModel->listAll(),
-            'filters'        => $filters,
+            'pageTitle'           => Auth::hasRole('Paciente') ? 'Mis Citas Médicas' : 'Gestión Integral de Citas Médicas',
+            'activeMenu'          => 'citas_listado',
+            'citas'               => $this->model->listCitas($filters, 300),
+            'alertasContingencia' => $this->model->obtenerAlertasContingencia($idPacAlertas, $idMedAlertas, 15),
+            'especialidades'      => $espModel->listAll(true),
+            'medicos'             => $medModel->listAll(),
+            'filters'             => $filters,
         ]);
     }
 
